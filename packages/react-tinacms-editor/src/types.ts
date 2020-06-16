@@ -56,7 +56,7 @@ export interface Command {
 
 export interface Plugin {
   name: string
-  MenuItem: ElementType
+  MenuItem?: ElementType
 }
 
 export interface Input {

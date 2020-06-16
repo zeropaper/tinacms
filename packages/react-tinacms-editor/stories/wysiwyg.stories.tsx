@@ -19,6 +19,7 @@ limitations under the License.
 import * as React from 'react'
 import { storiesOf } from '@storybook/react'
 import { Wysiwyg } from '../src/components/Wysiwyg'
+import { youtubePlugin } from './YoutubePlugin'
 
 const Basic = () => {
   const [value, setValue] = React.useState('')
@@ -105,8 +106,25 @@ const WithTable = () => {
   )
 }
 
+const WithYoutubeSupport = () => {
+  const [value, setValue] = React.useState('')
+  return (
+    <Wysiwyg
+      input={{
+        value,
+        onChange: (val: string) => {
+          console.log(val)
+          setValue(val)
+        },
+      }}
+      plugins={[youtubePlugin]}
+    />
+  )
+}
+
 storiesOf('Wysiwyg', module)
   .add('Basic', () => <Basic />)
   .add('HTML Format', () => <HTMLFormat />)
   .add('WithImage', () => <WithImage />)
   .add('WithTable', () => <WithTable />)
+  .add('WithYoutubeSupport', () => <WithYoutubeSupport />)
