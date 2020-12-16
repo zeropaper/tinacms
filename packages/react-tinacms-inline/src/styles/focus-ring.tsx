@@ -31,6 +31,7 @@ export interface StyledFocusRingProps
   active: boolean
   disableHover?: boolean
   disableChildren?: boolean
+  isPortal?: boolean
 }
 
 export interface FocusRingProps {
@@ -77,6 +78,8 @@ export const FocusRing = ({ name, options, children }: FocusRingProps) => {
   )
 }
 
+// issue of this blocking focus events when absolutely positioned via portal
+
 export const StyledFocusRing = styled.div<StyledFocusRingProps>(p => {
   const offset = getOffset(p.offset)
 
@@ -85,6 +88,12 @@ export const StyledFocusRing = styled.div<StyledFocusRingProps>(p => {
     width: 100%;
     height: 100%;
     min-height: var(--tina-font-size-0);
+
+    ${p.isPortal &&
+      css`
+        position: absolute;
+        top: 0;
+      `}
 
     ${!p.disableHover &&
       css`

@@ -100,24 +100,28 @@ const cta_template: BlockTemplate = {
 }
 
 function CallToActionBlock({ index, data }) {
+  const containerRef = React.createRef<HTMLDivElement>()
   return (
-    <div className="block">
-      <BlocksControls index={index}>
+    <>
+      <div className="block" ref={containerRef}>
         <button
           onClick={() => window.open(data.url, '_blank')}
           style={{ display: 'block', background: 'pink' }}
         >
           {data.text}
         </button>
-      </BlocksControls>
-      <style jsx>
-        {`
-          div.block {
-            margin: 2rem 0;
-          }
-        `}
-      </style>
-    </div>
+
+        <style jsx>
+          {`
+            div.block {
+              position: relative;
+              margin: 2rem 0;
+            }
+          `}
+        </style>
+      </div>
+      <BlocksControls containerRef={containerRef} index={index} />
+    </>
   )
 }
 
@@ -131,16 +135,17 @@ const hero_template: BlockTemplate = {
 }
 
 function HeroBlock({ index }) {
+  const containerRef = React.createRef<HTMLDivElement>()
   return (
-    <div className="block">
-      <BlocksControls index={index}>
-        <h2>
-          My Hero: <StyledBlockText name="text" />
-        </h2>
-      </BlocksControls>
+    <div className="block" ref={containerRef}>
+      <h2>
+        My Hero: <StyledBlockText name="text" />
+      </h2>
+      <BlocksControls containerRef={containerRef} index={index} />
       <style jsx>
         {`
           div.block {
+            position: relative;
             margin: 2rem 0;
           }
         `}
@@ -154,19 +159,20 @@ function HeroBlock({ index }) {
  */
 
 function ImageBlock({ index, data }) {
+  const containerRef = React.createRef<HTMLDivElement>()
   return (
-    <div className="block">
-      <BlocksControls index={index}>
-        <InlineImage
-          name="src"
-          parse={media => media.id.replace('public/', '')}
-          uploadDir={() => '/public/images/'}
-          focusRing={false}
-        />
-      </BlocksControls>
+    <div className="block" ref={containerRef}>
+      <InlineImage
+        name="src"
+        parse={media => media.id.replace('public/', '')}
+        uploadDir={() => '/public/images/'}
+        focusRing={false}
+      />
+      <BlocksControls containerRef={containerRef} index={index} />
       <style jsx>
         {`
           div.block {
+            position: relative;
             margin: 2rem 0;
           }
         `}
