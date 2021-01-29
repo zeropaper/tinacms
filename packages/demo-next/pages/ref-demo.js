@@ -96,7 +96,7 @@ RefDemo.getInitialProps = async function() {
     title: configData.title,
     description: configData.description,
     markdownFile: {
-      fileRelativePath: `data/info.md`,
+      fileRelativePath: `data/ref-demo.md`,
       frontmatter: data.data,
       markdownBody: data.content,
     },
