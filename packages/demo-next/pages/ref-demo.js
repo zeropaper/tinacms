@@ -8,6 +8,7 @@ import {
   InlineText,
   InlineTextarea,
   useFieldRef,
+  useContentEditableRef,
 } from 'react-tinacms-inline'
 
 const formOptions = {
@@ -34,7 +35,6 @@ const formOptions = {
       name: 'frontmatter.description',
       label: 'Description',
       component: 'textarea',
-      inlineComponent: InlineTextarea,
     },
   ],
 }
@@ -42,12 +42,15 @@ const formOptions = {
 function RefDemo(props) {
   const [data, form] = useMarkdownForm(props.markdownFile, formOptions)
   usePlugin(form)
+
   return (
     <InlineForm form={form}>
       {() => {
         const inlineTextRef = useFieldRef('frontmatter.title')
         const customInlineTextRef = useFieldRef('frontmatter.subtitle')
-        const contentEditableRef = useFieldRef('frontmatter.description')
+        const contentEditableRef = useContentEditableRef(
+          'frontmatter.description'
+        )
         return (
           <Layout>
             <section>
@@ -69,7 +72,13 @@ function RefDemo(props) {
             <section>
               <label>useContentEditableRef</label>
               <hr />
-              <div ref={contentEditableRef}>{data.frontmatter.description}</div>
+              <div
+                contentEditable
+                ref={contentEditableRef}
+                dangerouslySetInnerHTML={{
+                  __html: data.frontmatter.description,
+                }}
+              ></div>
             </section>
           </Layout>
         )
@@ -95,3 +104,28 @@ RefDemo.getInitialProps = async function() {
 }
 
 export default RefDemo
+
+const useCursorProps = ref => {
+  const [position, setPosition] = React.useState(null)
+
+  function saveSelection() {
+    if (window.getSelection) {
+      setPosition(window.getSelection().getRangeAt(0))
+    }
+  }
+
+  function restoreSelection() {
+    if (ref.current) ref.current.focus()
+    if (position != null && window.getSelection) {
+      var s = window.getSelection()
+      if (s.rangeCount > 0) s.removeAllRanges()
+      s.addRange(position)
+    }
+  }
+
+  return {
+    onMouseUp: saveSelection,
+    onKeyUp: saveSelection,
+    onFocus: restoreSelection,
+  }
+}
