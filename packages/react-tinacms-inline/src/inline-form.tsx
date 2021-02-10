@@ -21,7 +21,7 @@ import { FormRenderProps } from 'react-final-form'
 import { FormBuilder, Form, Field } from 'tinacms'
 import { Dismissible } from 'react-dismissible'
 import { useMap } from 'react-use'
-import { FieldOverlay, FieldTarget, FieldRefType } from './ref-fields'
+import { FieldOverlay, FieldRefType } from './ref-fields'
 
 type useMapObject<T> = { [key: string]: T }
 
@@ -127,7 +127,11 @@ export function InlineForm({ form, children }: InlineFormProps) {
                     )
                     if (!fieldConfig) return null
                     return (
-                      <FieldOverlay targetRef={ref}>
+                      <FieldOverlay
+                        targetNode={ref.current}
+                        hasFocus={focussedField === fieldName}
+                        onClick={() => setFocussedField(fieldName)}
+                      >
                         {focussedField === fieldName &&
                         fieldConfig.inlineComponent ? (
                           <fieldConfig.inlineComponent
@@ -135,15 +139,7 @@ export function InlineForm({ form, children }: InlineFormProps) {
                             // form={inlineFormState.form}
                             // field={fieldConfig}
                           />
-                        ) : (
-                          <FieldTarget
-                            onClick={e => {
-                              e.preventDefault()
-                              e.stopPropagation()
-                              setFocussedField(fieldName)
-                            }}
-                          />
-                        )}
+                        ) : null}
                       </FieldOverlay>
                     )
                   })}

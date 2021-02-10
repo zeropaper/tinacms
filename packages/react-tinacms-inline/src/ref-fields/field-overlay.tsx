@@ -17,7 +17,6 @@ limitations under the License.
 */
 
 import * as React from 'react'
-import { FieldRefType } from './use-field-ref'
 
 function useWindowResize(handler: () => void) {
   React.useEffect(() => {
@@ -27,23 +26,49 @@ function useWindowResize(handler: () => void) {
 }
 
 export function FieldOverlay({
-  targetRef,
+  targetNode,
+  hasFocus,
+  onClick,
   children,
 }: {
-  targetRef: FieldRefType
-  children: JSX.Element
+  targetNode: HTMLElement | null
+  hasFocus?: boolean
+  onClick?: (event: React.MouseEvent<HTMLElement>) => void
+  children?: JSX.Element | null
 }) {
+  const [hovering, setHovering] = React.useState(false)
   const [, setState] = React.useState(0)
   useWindowResize(() => setState(s => s + 1))
+  if (!targetNode) return null
+
+  const hoverStyles = {
+    opacity: '0.3',
+    border: '1px solid var(--tina-color-primary)',
+    borderRadius: 'var(--tina-radius-medium)',
+    boxShadow: 'var(--tina-shadow-big)',
+  }
+  const additionalStyles = hovering && !hasFocus ? hoverStyles : {}
   return (
     <div
       style={{
         position: 'absolute',
-        top: targetRef?.current?.offsetTop,
-        left: targetRef?.current?.offsetLeft,
-        width: targetRef?.current?.offsetWidth,
-        height: targetRef?.current?.offsetHeight,
+        padding: '32px',
+        top: targetNode.offsetTop - 16,
+        left: targetNode.offsetLeft - 16,
+        width: hasFocus ? 'auto' : targetNode.offsetWidth + 16,
+        height: hasFocus ? 'auto' : targetNode.offsetHeight + 16,
+        pointerEvents: hasFocus ? 'none' : 'initial',
+        ...additionalStyles,
       }}
+      onClick={e => {
+        if (onClick) {
+          e.preventDefault()
+          e.stopPropagation()
+          onClick(e)
+        }
+      }}
+      onMouseOver={() => setHovering(true)}
+      onMouseOut={() => setHovering(false)}
     >
       {children}
     </div>

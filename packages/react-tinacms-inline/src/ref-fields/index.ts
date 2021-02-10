@@ -18,4 +18,3 @@ limitations under the License.
 
 export * from './use-field-ref'
 export * from './field-overlay'
-export * from './field-target'
