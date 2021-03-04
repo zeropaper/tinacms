@@ -16,14 +16,15 @@ limitations under the License.
 
 */
 
-import React from 'react'
+import React, { useEffect } from 'react'
 import App from 'next/app'
-import { TinaProvider, TinaCMS, withTina } from 'tinacms'
+import { TinaProvider, TinaCMS, withTina, useCMS } from 'tinacms'
 import { GitClient, GitMediaStore } from '@tinacms/git-client'
 import { GlobalStyles as TinaCustomStyles } from '@tinacms/styles'
 import { NextGitMediaStore } from '../next-git-media-store'
 import { MarkdownFieldPlugin } from 'react-tinacms-editor'
 //import { CustomPaginatorPlugin } from '../plugins/CustomPaginator'
+import { EventBusContext, useEventBus } from '../components/neb/EventBusContext'
 
 function Empty() {
   return <span>Hello from a custom empty state Component</span>
@@ -59,13 +60,60 @@ export default class Site extends App {
   render() {
     const { Component, pageProps } = this.props
     return (
-      // Example: this config doesn't load external 'Inter' Font
-      <TinaProvider cms={this.cms} styled={false}>
-        <TinaCustomStyles />
-        <Component {...pageProps} />
-      </TinaProvider>
+      <>
+        <DispatchTester
+          top="150px"
+          eventName="from-outside"
+          message="outside of tinaprovider"
+        />
+        <SubscribeTester eventName="from-inside" />
+        <SubscribeTester eventName="from-outside" />
+        <TinaProvider cms={this.cms} styled={false}>
+          <EventBusContext.Provider value={this.cms.events}>
+            <TinaCustomStyles />
+            <DispatchTester
+              top="500px"
+              eventName="from-inside"
+              message="inside of tinaprovider"
+            />
+            <SubscribeTester eventName="from-outside" />
+            <SubscribeTester eventName="from-inside" />
+            <Component {...pageProps} />
+          </EventBusContext.Provider>
+        </TinaProvider>
+      </>
     )
   }
+}
+
+const DispatchTester = ({ top, eventName, message }) => {
+  const events = useEventBus()
+  const disp = React.useCallback(() => {
+    events.dispatch({ type: eventName, message })
+  }, [])
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        top: top,
+        zIndex: 999999999,
+      }}
+    >
+      <button type="button" onClick={disp}>
+        Dispatch Event
+      </button>
+    </div>
+  )
+}
+
+const SubscribeTester = ({ eventName }) => {
+  const events = useEventBus()
+  React.useEffect(() => {
+    events.subscribe(eventName, ({ message }) => {
+      console.info(message)
+    })
+  }, [])
+  return null
 }
 
 // const client = new GitClient('http://localhost:3000/___tina')
