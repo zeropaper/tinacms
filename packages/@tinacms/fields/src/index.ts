@@ -27,4 +27,4 @@ export * from './plugins/wrapFieldWithMeta'
  *
  * see discussion: https://github.com/microsoft/TypeScript/issues/5711#issuecomment-157793294
  */
-export type { FieldProps } from './plugins/fieldProps'
+export { FieldProps } from './plugins/fieldProps'

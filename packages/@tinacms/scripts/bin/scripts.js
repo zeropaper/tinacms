@@ -71,7 +71,7 @@ const COMMANDS = {
     tsup.build({
       entryPoints: [options.inputOptions.input],
       dts: true,
-      outDir: 'build',
+      outDir: path.dirname(options.outputOptions.file),
       watch: true,
       format: ['cjs'],
     })
