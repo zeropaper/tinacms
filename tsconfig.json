@@ -5,6 +5,7 @@
     "target": "es5",
     "esModuleInterop": true,
     "moduleResolution": "node",
+    "importHelpers": true,
     "jsx": "react",
     "lib": ["esnext", "dom"]
   }
