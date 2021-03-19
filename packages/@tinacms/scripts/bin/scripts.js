@@ -53,9 +53,12 @@ program
 const COMMANDS = {
   build() {
     const options = createBuildOptions({ uglify: false, debug: true })
+    console.log(path.dirname(options.outputOptions.file))
     tsup.build({
       entryPoints: [options.inputOptions.input],
-      // dts: true,
+      // outDir: 'build',
+      outDir: path.dirname(options.outputOptions.file),
+      dts: true,
       format: ['cjs'],
     })
     // build(createBuildOptions({ uglify: true, debug: false }))
@@ -64,7 +67,15 @@ const COMMANDS = {
     build(createBuildOptions({ uglify: false, debug: true }))
   },
   watch() {
-    watch(createBuildOptions({ uglify: false, debug: true }))
+    const options = createBuildOptions({ uglify: false, debug: true })
+    tsup.build({
+      entryPoints: [options.inputOptions.input],
+      dts: true,
+      outDir: 'build',
+      watch: true,
+      format: ['cjs'],
+    })
+    // watch(createBuildOptions({ uglify: false, debug: true }))
   },
 }
 
