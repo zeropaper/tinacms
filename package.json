@@ -10,6 +10,7 @@
     "dev": "lerna run dev --reject-cycles",
     "nuke": "./scripts/nuke.sh",
     "lerna": "lerna",
+    "tsup": "tsup",
     "hard-reset": "npm run nuke && npm run bs && npm run build",
     "test": "lerna run test --reject-cycles",
     "docs": "lerna run docs"
@@ -45,6 +46,7 @@
     "ts-jest": "^24.3.0",
     "tsdx": "^0.12.3",
     "tslib": "^2.1.0",
+    "tsup": "^4.8.18",
     "typedoc": "^0.16.2",
     "typescript": "^4.2.3",
     "typescript-plugin-styled-components": "^1.4.4"

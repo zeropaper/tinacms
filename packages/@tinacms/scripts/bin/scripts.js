@@ -22,6 +22,7 @@ const rollup = require('rollup')
 const rollupTypescript = require('rollup-plugin-typescript2')
 const rollupReplace = require('rollup-plugin-replace')
 const rollupCommonJs = require('rollup-plugin-commonjs')
+const tsup = require('tsup')
 const typescript = require('typescript')
 const { uglify } = require('rollup-plugin-uglify')
 const createStyledComponentsTransformer = require('typescript-plugin-styled-components')
@@ -51,7 +52,13 @@ program
 
 const COMMANDS = {
   build() {
-    build(createBuildOptions({ uglify: true, debug: false }))
+    const options = createBuildOptions({ uglify: false, debug: true })
+    tsup.build({
+      entryPoints: [options.inputOptions.input],
+      // dts: true,
+      format: ['cjs'],
+    })
+    // build(createBuildOptions({ uglify: true, debug: false }))
   },
   dev() {
     build(createBuildOptions({ uglify: false, debug: true }))
