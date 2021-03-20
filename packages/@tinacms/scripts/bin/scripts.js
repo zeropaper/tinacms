@@ -56,7 +56,6 @@ const COMMANDS = {
     console.log(path.dirname(options.outputOptions.file))
     tsup.build({
       entryPoints: [options.inputOptions.input],
-      // outDir: 'build',
       outDir: path.dirname(options.outputOptions.file),
       dts: true,
       format: ['cjs'],
@@ -68,10 +67,13 @@ const COMMANDS = {
   },
   watch() {
     const options = createBuildOptions({ uglify: false, debug: true })
+    const dirname = path.dirname(options.outputOptions.file)
     tsup.build({
       entryPoints: [options.inputOptions.input],
       dts: true,
-      outDir: path.dirname(options.outputOptions.file),
+      outDir: dirname,
+      // tsup/chokidar gets mixed up between absolute and relative, so give both
+      ignoreWatch: [dirname, path.basename(dirname)],
       watch: true,
       format: ['cjs'],
     })
