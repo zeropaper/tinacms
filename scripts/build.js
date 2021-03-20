@@ -8,14 +8,12 @@ const run = async () => {
   const lerna = JSON.parse(
     await fs.readFileSync(path.join(process.cwd(), 'lerna.json')).toString()
   )
-  // console.log(lerna.packages)
+  // FIXME: probs need to make sure this only runs for packages
+  // so demos and things like that don't run
   const entries = await fg(lerna.packages, { dot: true, onlyDirectories: true })
 
-  // console.log(entries.map(entry => `${entry}/src/**/*`))
   const watcher = watch(
-    // ['./packages/tinacms/**/*', './packages/@tinacms/react-sidebar/**/*'],
     entries.map(entry => `${entry}/src/**/*`),
-    // ['.'],
     {
       ignoreInitial: true,
       ignorePermissionErrors: true,
@@ -42,26 +40,18 @@ const run = async () => {
     const pkg = JSON.parse(await fs.readFileSync(pd).toString())
     const pkgDir = path.dirname(pd)
     const outDir = path.resolve(pkgDir, path.dirname(pkg.main))
-    const outFile = path.resolve(pkgDir, pkg.main)
     const origDir = process.cwd()
-    const changedFileFullPath = path.resolve(origDir, file)
-    if (changedFileFullPath === outFile) {
-      console.log(changedFileFullPath)
-      console.log('change was the build file, ignoring...')
-      return
-    }
+    // set the cwd to the package that changed
+    // so tsup can run as if it was initialized there
     process.chdir(pkgDir)
-    console.log(process.cwd())
     const config = {
       entryPoints: path.resolve(pkgDir, 'src', 'index.ts'),
       outDir: outDir,
-      // ignoreWatch: [ouDir, path.basename(outDir)],
       dts: true,
       format: ['cjs'],
     }
-    // console.log(config)
-
     await tsup.build(config)
+    // set the cwd back to the original
     process.chdir(origDir)
   })
 }
