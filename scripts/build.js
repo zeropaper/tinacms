@@ -41,11 +41,6 @@ const run = async () => {
     const pd = await findParentPkgDesc(path.dirname(file))
     const pkg = JSON.parse(await fs.readFileSync(pd).toString())
     const pkgDir = path.dirname(pd)
-    const tsconfig = JSON.parse(
-      await fs.readFileSync(path.join(pkgDir, 'tsconfig.json')).toString()
-    )
-    // console.log('pd', pkg)
-    // console.log('ts', tsconfig)
     const outDir = path.resolve(pkgDir, path.dirname(pkg.main))
     const outFile = path.resolve(pkgDir, pkg.main)
     const origDir = process.cwd()
