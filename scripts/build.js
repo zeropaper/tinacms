@@ -56,7 +56,7 @@ const run = async () => {
       entryPoints: path.resolve(pkgDir, 'src', 'index.ts'),
       outDir: outDir,
       // ignoreWatch: [ouDir, path.basename(outDir)],
-      // dts: true,
+      dts: true,
       format: ['cjs'],
     }
     // console.log(config)

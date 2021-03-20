@@ -58,7 +58,3 @@ export {
   BaseMediaPaginator,
   MediaPaginatorProps,
 } from './components/media'
-
-// anothess
-// ss d ddsx
-//
