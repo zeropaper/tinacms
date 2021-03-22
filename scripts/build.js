@@ -42,12 +42,7 @@ const sequential = async (items, callback) => {
   return accum
 }
 
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms))
-}
-
 const build = async pd => {
-  // await sleep(4000)
   const pkg = JSON.parse(await fs.readFileSync(pd).toString())
   const pkgDir = path.dirname(pd)
   console.log(
