@@ -66,7 +66,7 @@ const build = async pd => {
   const config = {
     entryPoints,
     outDir: outDir,
-    dts: true,
+    // dts: true,
     format: ['cjs'],
   }
   await tsup.build(config)
