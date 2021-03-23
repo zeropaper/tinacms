@@ -24,7 +24,6 @@ const child_process_1 = require('child_process')
  */
 const createBuildOptions = () => {
   const absolutePath = process.cwd()
-  console.log('ap', absolutePath)
   const pkg = require(path_1.default.join(absolutePath, 'package.json'))
   console.log(`Building Package: ${pkg.name}@${pkg.version}`)
   const dependencyKeys = Object.keys(pkg.dependencies || {})
@@ -126,6 +125,7 @@ const getLernaPackages = async () => {
   return lernaPackages
 }
 const run = async (skipInitialBuild = false) => {
+  console.log('running build', 'skip initial:', skipInitialBuild)
   const pkgs = await getLernaPackages()
   const origPwd = process.cwd()
   if (!skipInitialBuild) {
@@ -149,10 +149,12 @@ const run = async (skipInitialBuild = false) => {
       ignored: ['**/{.git,node_modules}/**', 'build', 'dist'],
     }
   )
+  console.log('watching for changes')
   watcher.on('all', async (type, file) => {
     const packageLocation = path_1.default.dirname(
       await findParentPkgDesc(path_1.default.dirname(file))
     )
+    console.log(`Detected change in ${packageLocation}, rebuilding...`)
     process.chdir(packageLocation)
     // FIXME: For some reason this fails when watching with an error about one the files inside not existing
     await fs_extra_1.default.emptyDirSync(

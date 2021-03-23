@@ -15,7 +15,6 @@ import { spawnSync } from 'child_process'
 const createBuildOptions = () => {
   const absolutePath = process.cwd()
 
-  console.log('ap', absolutePath)
   const pkg = require(path.join(absolutePath, 'package.json'))
   console.log(`Building Package: ${pkg.name}@${pkg.version}`)
 
@@ -132,6 +131,7 @@ const getLernaPackages = async () => {
   return lernaPackages
 }
 const run = async (skipInitialBuild: boolean = false) => {
+  console.log('running build', 'skip initial:', skipInitialBuild)
   const pkgs = await getLernaPackages()
   const origPwd = process.cwd()
   if (!skipInitialBuild) {
@@ -155,10 +155,13 @@ const run = async (skipInitialBuild: boolean = false) => {
       ignored: ['**/{.git,node_modules}/**', 'build', 'dist'],
     }
   )
+
+  console.log('watching for changes')
   watcher.on('all', async (type, file) => {
     const packageLocation = path.dirname(
       await findParentPkgDesc(path.dirname(file))
     )
+    console.log(`Detected change in ${packageLocation}, rebuilding...`)
     process.chdir(packageLocation)
     // FIXME: For some reason this fails when watching with an error about one the files inside not existing
     await fs.emptyDirSync(path.join(packageLocation, '.rts2_cache'))
