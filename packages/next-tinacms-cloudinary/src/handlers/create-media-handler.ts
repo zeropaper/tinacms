@@ -16,7 +16,10 @@ import { Media, MediaListOptions } from '@tinacms/core'
 import path from 'path'
 import { NextApiRequest, NextApiResponse } from 'next'
 import multer from 'multer'
-import { promisify } from 'util'
+
+// eslint-disable-next-line @typescript-eslint/ban-ts-ignore
+// @ts-ignore
+import { promisify } from 'util.promisify'
 
 export interface CloudinaryConfig {
   cloud_name: string

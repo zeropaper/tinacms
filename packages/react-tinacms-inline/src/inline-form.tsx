@@ -81,6 +81,9 @@ export function InlineForm({ form, children }: InlineFormProps) {
       >
         <div
           onClick={() => {
+            // TODO: Fix this dependency issue
+            // eslint-disable-next-line @typescript-eslint/ban-ts-ignore
+            // @ts-ignore
             cms.events.dispatch({
               type: `form:${form.id}:fields::focus`,
               form: form.id,
