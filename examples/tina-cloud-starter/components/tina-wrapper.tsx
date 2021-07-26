@@ -19,18 +19,17 @@ import {
 } from 'tinacms'
 import React from 'react'
 import { LoadingPage } from './Spinner'
-
+import { MarkdownFieldPlugin } from 'react-tinacms-editor'
 /**
  * This gets loaded dynamically in "pages/_app.js"
  * if you're on a route that starts with "/admin"
  */
-const TinaWrapper = props => {
+const TinaWrapper = (props) => {
   return (
     <TinaCloudProvider
       clientId=""
       branch="main"
       isLocalClient={true}
-      organization=""
       // clientId={process.env.NEXT_PUBLIC_TINA_CLIENT_ID}
       // branch="main"
       // isLocalClient={Boolean(Number(process.env.NEXT_PUBLIC_USE_LOCAL_CLIENT))}
@@ -42,10 +41,11 @@ const TinaWrapper = props => {
   )
 }
 
-const Inner = props => {
+const Inner = (props) => {
   const cms = useCMS()
+  cms.plugins.add(MarkdownFieldPlugin)
   const [payload, isLoading] = useGraphqlForms({
-    query: gql => gql(props.query),
+    query: (gql) => gql(props.query),
     variables: props.variables || {},
     // formify: args => {
     //   if (args.formConfig.id === 'getPostsDocument') {
