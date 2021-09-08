@@ -52,7 +52,6 @@ export const MagicWand = () => {
       document.querySelectorAll('[data-tinafield]')
     )
     fieldReferences.map((ele) => {
-      console.log(ele)
       ele.addEventListener('mouseenter', hoverStart)
       ele.addEventListener('mouseleave', hoverEnd)
     })
@@ -63,17 +62,17 @@ export const MagicWand = () => {
         ele.removeEventListener('mouseleave', hoverEnd)
       })
     }
-  }, [active, setHoveredFieldName])
+  }, [active, setHoveredFieldName, signal])
 
   React.useEffect(() => {
+    if (!active) return
     dispatch({ fieldName: hoveredFieldName })
-  }, [hoveredFieldName, dispatch, signal])
+  }, [active, hoveredFieldName, dispatch])
 
   return (
     <IconButton
       onClick={() => {
         setActive(!active)
-        console.log('poofed')
       }}
     >
       <CodeIcon />
