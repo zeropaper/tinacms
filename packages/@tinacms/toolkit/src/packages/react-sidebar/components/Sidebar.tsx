@@ -69,6 +69,10 @@ const Sidebar = ({ sidebar }: SidebarProps) => {
   const allScreens = screens.all()
   const showMenu = allScreens.length > 0
 
+  const showMagicWand = cms.plugins
+    .getType('unstable:featureflag')
+    .find('magic-wand')
+
   return (
     <>
       <SidebarGlobalStyles />
@@ -83,7 +87,6 @@ const Sidebar = ({ sidebar }: SidebarProps) => {
                 <HamburgerIcon />
               </MenuToggle>
             )}
-            <MagicWand />
             <CreateContentMenu sidebar={true} />
           </SidebarHeader>
           <FormsView>
@@ -121,6 +124,7 @@ const Sidebar = ({ sidebar }: SidebarProps) => {
           )}
           <ResizeHandle />
         </SidebarWrapper>
+        {showMagicWand && <MagicWand />}
         <SidebarToggle sidebar={sidebar} />
       </SidebarContainer>
     </>

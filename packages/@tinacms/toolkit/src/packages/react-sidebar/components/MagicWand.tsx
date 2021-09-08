@@ -3,24 +3,37 @@ import { useEvent } from '../../react-core/use-cms-event'
 import { useMutationSignal } from '../../../components/MutationSignal'
 import { IconButton } from '../../styles'
 import { CodeIcon } from '../../icons'
+import { useCMS } from '../../..'
+import styled from 'styled-components'
+import { Plugin } from '../../core/plugins'
 
 export const MagicWand = () => {
+  const cms = useCMS()
   const [active, setActive] = React.useState(false)
   const [hoveredFieldName, setHoveredFieldName] = React.useState<string | null>(
     null
   )
+  const escape = (e?: any) => {
+    if (e) {
+      e.preventDefault()
+      e.stopPropagation()
+    }
+    setHoveredFieldName(null)
+    setActive(false)
+  }
+
   const signal = useMutationSignal()
   const { dispatch } = useEvent('field:hover')
+  const { dispatch: focusFieldInSidebar } = useEvent('field:reveal-in-sidebar')
 
   React.useEffect(() => {
-    const escape = () => {
-      setHoveredFieldName(null)
-      setActive(false)
-    }
     if (active) {
-      document.body.style.cursor = 'help'
+      document.body.style.cursor = 'crosshair'
       window.addEventListener('click', escape)
       window.addEventListener('keydown', escape)
+
+      //@ts-ignore
+      cms.sidebar.isOpen = false
     } else {
       document.body.style.cursor = 'initial'
     }
@@ -33,14 +46,22 @@ export const MagicWand = () => {
 
   React.useEffect(() => {
     if (!active) return
+
+    const openSidebar = (e: any) => {
+      e.preventDefault()
+      e.stopPropagation()
+      const fieldName = e.target.dataset.tinafield
+      //@ts-ignore
+      cms.sidebar.isOpen = true
+      focusFieldInSidebar({ fieldName })
+      escape()
+    }
     const hoverStart = (e: any) => {
       e.preventDefault()
       e.stopPropagation()
       //@ts-ignore
       const fieldName = e.target.dataset.tinafield
-      if (fieldName !== hoveredFieldName) {
-        setHoveredFieldName(fieldName)
-      }
+      setHoveredFieldName(fieldName)
     }
     const hoverEnd = (e: any) => {
       e.preventDefault()
@@ -54,12 +75,14 @@ export const MagicWand = () => {
     fieldReferences.map((ele) => {
       ele.addEventListener('mouseenter', hoverStart)
       ele.addEventListener('mouseleave', hoverEnd)
+      ele.addEventListener('click', openSidebar)
     })
 
     return () => {
       fieldReferences.map((ele) => {
         ele.removeEventListener('mouseenter', hoverStart)
         ele.removeEventListener('mouseleave', hoverEnd)
+        ele.removeEventListener('click', openSidebar)
       })
     }
   }, [active, setHoveredFieldName, signal])
@@ -70,12 +93,26 @@ export const MagicWand = () => {
   }, [active, hoveredFieldName, dispatch])
 
   return (
-    <IconButton
+    <WandButton
       onClick={() => {
         setActive(!active)
       }}
     >
       <CodeIcon />
-    </IconButton>
+    </WandButton>
   )
+}
+
+const WandButton = styled(IconButton)`
+  position: absolute;
+  pointer-events: all;
+  bottom: 15px;
+  left: var(--tina-sidebar-width);
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+`
+
+export const MagicWandPlugin: Plugin = {
+  __type: 'unstable:featureflag',
+  name: 'magic-wand',
 }

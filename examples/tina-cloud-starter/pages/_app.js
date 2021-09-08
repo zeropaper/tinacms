@@ -4,6 +4,7 @@ import { TinaEditProvider } from "tinacms/dist/edit-state";
 import { Layout } from "../components/layout";
 const TinaCMS = dynamic(() => import("tinacms"), { ssr: false });
 import { TinaCloudCloudinaryMediaStore } from "next-tinacms-cloudinary";
+import { MagicWandPlugin } from "tinacms";
 
 const NEXT_PUBLIC_TINA_CLIENT_ID = process.env.NEXT_PUBLIC_TINA_CLIENT_ID;
 const NEXT_PUBLIC_USE_LOCAL_CLIENT =
@@ -24,6 +25,7 @@ const App = ({ Component, pageProps }) => {
               import("react-tinacms-editor").then(({ MarkdownFieldPlugin }) => {
                 cms.plugins.add(MarkdownFieldPlugin);
               });
+              cms.plugins.add(MagicWandPlugin);
             }}
             documentCreatorCallback={{
               /**
