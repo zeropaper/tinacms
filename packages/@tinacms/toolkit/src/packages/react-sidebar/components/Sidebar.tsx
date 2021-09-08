@@ -27,6 +27,7 @@ import { ScreenPlugin, ScreenPluginModal } from '../../react-screens'
 import { useSubscribable, useCMS } from '../../react-core'
 import { ResizeHandle } from './ResizeHandle'
 import { SidebarState, SidebarPosition, SidebarStateOptions } from '../sidebar'
+import { MagicWand } from './MagicWand'
 
 export interface SidebarProviderProps {
   children: any
@@ -82,6 +83,7 @@ const Sidebar = ({ sidebar }: SidebarProps) => {
                 <HamburgerIcon />
               </MenuToggle>
             )}
+            <MagicWand />
             <CreateContentMenu sidebar={true} />
           </SidebarHeader>
           <FormsView>

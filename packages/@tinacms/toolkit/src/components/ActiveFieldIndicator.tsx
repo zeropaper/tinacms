@@ -178,6 +178,7 @@ export const ActiveFieldIndicator = () => {
         width,
         height,
         outline: '2px dashed var(--tina-color-indicator)',
+        pointerEvents: 'none',
       }}
     ></div>
   )
