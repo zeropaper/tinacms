@@ -18,7 +18,8 @@ blocks:
         icon: false
         link: /posts
     image:
-      src: tina-illustration.png
+      src: >-
+        http://res.cloudinary.com/dwalkr/image/upload/v1602010690/trumpsteaks_sivp7h.jpg
       alt: Tina
     color: default
     _template: hero
