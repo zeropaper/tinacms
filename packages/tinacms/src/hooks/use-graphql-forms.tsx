@@ -86,6 +86,9 @@ export function useGraphqlForms<T extends object>({
         const asyncUpdate = activeForm.paths?.find(
           (p) => p.dataPath.join('.') === newUpdate.set
         )
+        console.log({ newUpdate })
+        console.log({ activeForm })
+        console.log({ asyncUpdate })
         if (asyncUpdate) {
           const res = await cms.api.tina.request(asyncUpdate.queryString, {
             variables: { id: newValue },

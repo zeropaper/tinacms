@@ -30,6 +30,7 @@ import {
   TypeInfo,
   visitWithTypeInfo,
   GraphQLUnionType,
+  GraphQLObjectType,
 } from 'graphql'
 import { createSchema } from './schema'
 import { createResolver } from './resolver'
@@ -81,6 +82,9 @@ export const resolve = async ({
         leave: {
           // Loop through all field nodes
           Field(node, key, parent, path, ancestors) {
+            if (node.name.value === 'authorNESTED') {
+              console.log({ node })
+            }
             const type = typeInfo.getType()
             if (type) {
               const realType = getNamedType(type)
@@ -94,6 +98,7 @@ export const resolve = async ({
                   )
                 // If they're part of a union _AND_ their types use the `Node` interface...
                 if (hasNodeInterface) {
+                  // console.log({ node })
                   const p: string[] = []
                   // build the path to their nodes by traversing the ancestor tree and grabbing each Field node
                   // the resulting shape is something like `[getPostsDocument, data, author]`
@@ -120,6 +125,7 @@ export const resolve = async ({
         },
       }
     }
+    console.debug({ ast: ast })
     visit(ast, visitWithTypeInfo(typeInfo, referencePathVisitor()))
 
     const res = await graphql({
@@ -292,7 +298,7 @@ export const resolve = async ({
         }
       },
     })
-
+    // console.log({ paths })
     paths.forEach((p) => {
       const item = _.get(res, p.path)
       if (item) {

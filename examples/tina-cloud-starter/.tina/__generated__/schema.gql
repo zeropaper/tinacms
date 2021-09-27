@@ -80,9 +80,18 @@ type Collection {
 
 union DocumentNode = PostsDocument | GlobalDocument | AuthorsDocument | PagesDocument
 
+union PostsAsdfNESTEDTemplateNESTEDAuthorNESTEDDocument = AuthorsDocument
+
+type PostsAsdfNESTEDTemplateNESTED {
+  authorNESTED: PostsAsdfNESTEDTemplateNESTEDAuthorNESTEDDocument
+}
+
+union PostsAsdfNESTED = PostsAsdfNESTEDTemplateNESTED
+
 union PostsAuthorDocument = AuthorsDocument
 
 type Posts {
+  asdfNESTED: [PostsAsdfNESTED]
   title: String
   author: PostsAuthorDocument
   date: String
@@ -289,7 +298,16 @@ input DocumentMutation {
   pages: PagesMutation
 }
 
+input PostsAsdfNESTEDTemplateNESTEDMutation {
+  authorNESTED: String
+}
+
+input PostsAsdfNESTEDMutation {
+  templateNESTED: PostsAsdfNESTEDTemplateNESTEDMutation
+}
+
 input PostsMutation {
+  asdfNESTED: [PostsAsdfNESTEDMutation]
   title: String
   author: String
   date: String

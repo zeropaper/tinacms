@@ -389,6 +389,26 @@ export default defineSchema({
       path: "content/posts",
       fields: [
         {
+          type: "object",
+          name: "asdfNESTED",
+          label: "adsf",
+          list: true,
+          templates: [
+            {
+              name: "templateNESTED",
+              label: "template one",
+              fields: [
+                {
+                  name: "authorNESTED",
+                  label: "Author",
+                  type: "reference",
+                  collections: ["authors"],
+                },
+              ],
+            },
+          ],
+        },
+        {
           type: "string",
           label: "Title",
           name: "title",

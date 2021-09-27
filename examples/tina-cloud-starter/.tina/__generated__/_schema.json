@@ -6,6 +6,43 @@
       "path": "content/posts",
       "fields": [
         {
+          "type": "object",
+          "name": "asdfNESTED",
+          "label": "adsf",
+          "list": true,
+          "templates": [
+            {
+              "name": "templateNESTED",
+              "label": "template one",
+              "fields": [
+                {
+                  "name": "authorNESTED",
+                  "label": "Author",
+                  "type": "reference",
+                  "collections": [
+                    "authors"
+                  ],
+                  "namespace": [
+                    "posts",
+                    "asdfNESTED",
+                    "templateNESTED",
+                    "authorNESTED"
+                  ]
+                }
+              ],
+              "namespace": [
+                "posts",
+                "asdfNESTED",
+                "templateNESTED"
+              ]
+            }
+          ],
+          "namespace": [
+            "posts",
+            "asdfNESTED"
+          ]
+        },
+        {
           "type": "string",
           "label": "Title",
           "name": "title",

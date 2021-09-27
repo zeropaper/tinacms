@@ -7,6 +7,7 @@ import type { PostsDocument } from "../../.tina/__generated__/types";
 export default function BlogPostPage(
   props: AsyncReturnType<typeof getStaticProps>["props"]
 ) {
+  console.log({ data: props?.data.getPostsDocument });
   if (props.data && props.data.getPostsDocument) {
     return <Post {...props.data.getPostsDocument} />;
   }
@@ -38,6 +39,7 @@ export const getStaticProps = async ({ params }) => {
     `,
     variables: { relativePath: `${params.filename}.md` },
   })) as { data: { getPostsDocument: PostsDocument } };
+  console.log({ tinaProps });
   return {
     props: {
       ...tinaProps,

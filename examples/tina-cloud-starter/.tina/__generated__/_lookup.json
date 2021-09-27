@@ -119,5 +119,54 @@
     "collections": [
       "posts"
     ]
+  },
+  "PostsAsdfTemplate1AuthorDocument": {
+    "type": "PostsAsdfTemplate1AuthorDocument",
+    "resolveType": "multiCollectionDocument"
+  },
+  "PostsAsdf": {
+    "type": "PostsAsdf",
+    "resolveType": "unionData",
+    "typeMap": {
+      "templateNESTED": "PostsAsdfTemplateNESTED"
+    }
+  },
+  "PostsAsdfTemplate1AuthorNestedDocument": {
+    "type": "PostsAsdfTemplate1AuthorNestedDocument",
+    "resolveType": "multiCollectionDocument"
+  },
+  "PostsAsdfTemplate------------NESTEDAuthorNestedDocument": {
+    "type": "PostsAsdfTemplate------------NESTEDAuthorNestedDocument",
+    "resolveType": "multiCollectionDocument"
+  },
+  "PostsAsdfTemplateNESTEDAuthorNestedDocument": {
+    "type": "PostsAsdfTemplateNESTEDAuthorNestedDocument",
+    "resolveType": "multiCollectionDocument"
+  },
+  "PostsAsdfTemplateNESTEDAuthorNESTEDDocument": {
+    "type": "PostsAsdfTemplateNESTEDAuthorNESTEDDocument",
+    "resolveType": "multiCollectionDocument"
+  },
+  "PostsAsdfNESTEDTemplateNESTEDAuthorNESTEDDocument": {
+    "type": "PostsAsdfNESTEDTemplateNESTEDAuthorNESTEDDocument",
+    "resolveType": "multiCollectionDocument"
+  },
+  "PostsAsdfNESTED": {
+    "type": "PostsAsdfNESTED",
+    "resolveType": "unionData",
+    "typeMap": {
+      "templateNESTED": "PostsAsdfNESTEDTemplateNESTED"
+    }
+  },
+  "PostsAsdfNESTED dTemplateNESTEDAuthorNESTEDDocument": {
+    "type": "PostsAsdfNESTED dTemplateNESTEDAuthorNESTEDDocument",
+    "resolveType": "multiCollectionDocument"
+  },
+  "PostsAsdfNESTED d": {
+    "type": "PostsAsdfNESTED d",
+    "resolveType": "unionData",
+    "typeMap": {
+      "templateNESTED": "PostsAsdfNESTED dTemplateNESTED"
+    }
   }
 }
