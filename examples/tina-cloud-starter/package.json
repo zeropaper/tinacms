@@ -10,6 +10,7 @@
   "devDependencies": {
     "@svgr/webpack": "^5.5.0",
     "@tinacms/cli": "workspace:*",
+    "@tinacms/toolkit": "workspace:*",
     "@types/js-cookie": "^2.2.6",
     "@types/node": "^13.13.1",
     "@types/react": "17.0.2",

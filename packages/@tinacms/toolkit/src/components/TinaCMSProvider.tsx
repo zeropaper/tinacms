@@ -32,8 +32,8 @@ export const TinaCMSProvider: React.FC<TinaCMSProviderProps> = ({
   cms,
   children,
 }) => {
-  if (!(cms instanceof TinaCMS)) {
-    throw new Error(INVALID_CMS_ERROR)
-  }
+  // if (!(cms instanceof TinaCMS)) {
+  //   throw new Error(INVALID_CMS_ERROR)
+  // }
   return <CMSContext.Provider value={cms}>{children}</CMSContext.Provider>
 }

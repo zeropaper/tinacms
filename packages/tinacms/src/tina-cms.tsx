@@ -19,7 +19,7 @@ import { LocalClient } from './client/index'
 import type { TinaIOConfig } from './client/index'
 import { useCMS } from '@tinacms/toolkit'
 
-import type { TinaCMS } from '@tinacms/toolkit'
+import { TinaCMS } from '@tinacms/toolkit'
 import type { formifyCallback } from './hooks/use-graphql-forms'
 
 const SetupHooks = (props: {
@@ -172,6 +172,7 @@ export const TinaCMSProvider2 = ({
   cmsCallback,
   mediaStore,
   tinaioConfig,
+  cms,
   ...props
 }: {
   /** The query from getStaticProps */
@@ -197,6 +198,7 @@ export const TinaCMSProvider2 = ({
   /** TinaCMS media store instance */
   mediaStore?: TinaCloudMediaStoreClass | Promise<TinaCloudMediaStoreClass>
   tinaioConfig?: TinaIOConfig
+  cms: any
 }) => {
   if (typeof props.query === 'string') {
     props.query
@@ -209,6 +211,7 @@ export const TinaCMSProvider2 = ({
       isLocalClient={isLocalClient}
       cmsCallback={cmsCallback}
       mediaStore={mediaStore}
+      cms={cms}
     >
       {props.query ? (
         <SetupHooks key={props.query} {...props} query={props.query || ''}>

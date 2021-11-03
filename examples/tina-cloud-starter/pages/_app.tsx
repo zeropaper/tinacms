@@ -2,8 +2,9 @@ import "../styles.css";
 import dynamic from "next/dynamic";
 import { TinaEditProvider } from "tinacms/dist/edit-state";
 import { Layout } from "../components/layout";
+import { TinaCMS } from "@tinacms/toolkit";
 // @ts-ignore FIXME: default export needs to be 'ComponentType<{}>
-const TinaCMS = dynamic(() => import("tinacms"), { ssr: false });
+const TinaCloudProvider = dynamic(() => import("tinacms"), { ssr: false });
 
 const NEXT_PUBLIC_TINA_CLIENT_ID = process.env.NEXT_PUBLIC_TINA_CLIENT_ID;
 const NEXT_PUBLIC_USE_LOCAL_CLIENT =
@@ -15,7 +16,7 @@ const App = ({ Component, pageProps }) => {
       <TinaEditProvider
         showEditButton={true}
         editMode={
-          <TinaCMS
+          <TinaCloudProvider
             branch="main"
             clientId={NEXT_PUBLIC_TINA_CLIENT_ID}
             isLocalClient={Boolean(Number(NEXT_PUBLIC_USE_LOCAL_CLIENT))}
@@ -28,6 +29,12 @@ const App = ({ Component, pageProps }) => {
                 cms.plugins.add(MarkdownFieldPlugin);
               });
             }}
+            cms={
+              new TinaCMS({
+                enabled: true,
+                sidebar: true,
+              })
+            }
             documentCreatorCallback={{
               /**
                * After a new document is created, redirect to its location
@@ -62,7 +69,7 @@ const App = ({ Component, pageProps }) => {
                 <Component {...livePageProps} />
               </Layout>
             )}
-          </TinaCMS>
+          </TinaCloudProvider>
         }
       >
         <Layout
