@@ -41,6 +41,16 @@ describe('Rich Text Editor', () => {
     })
   })
 
+  describe('strikethrough', () => {
+    it('is correctly rendered from markdown', () => {
+      cy.assertRTE('~~striked~~', '', '<s>striked</s>')
+    })
+
+    it('can be typed', () => {
+      cy.assertRTE('', '~~striked~~', '<s>striked</s>', '~~striked~~')
+    })
+  })
+
   describe('headings', () => {
     it('is correctly rendered from markdown', () => {
       cy.assertRTE(
