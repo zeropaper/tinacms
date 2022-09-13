@@ -16,15 +16,28 @@ import { defineSchema, defineConfig } from 'tinacms'
 const schema = defineSchema({
   collections: [
     {
+      name: 'test',
+      path: 'content/test',
+      label: 'Test',
+      templates: [
+        {
+          name: 'tem1',
+          label: 'Template 1',
+          fields: [{ type: 'string', name: 'foo' }],
+        },
+        {
+          name: 'tem2',
+          label: 'Template 2',
+          fields: [{ type: 'string', name: 'bar' }],
+        },
+      ],
+    },
+    {
       name: 'page',
       path: 'content/page',
       label: 'Page',
       format: 'mdx',
       fields: [
-        // {
-        //   name: 'thingOne',
-        //   type: 'string',
-        // },
         {
           label: 'Title',
           name: 'Title',
@@ -40,11 +53,11 @@ const schema = defineSchema({
             //     </div>
             //   )
             // },
-            validate: (val) => {
-              if (val?.length > 5) {
-                return 'Too Long!!!'
-              }
-            },
+            // validate: (val) => {
+            //   if (val?.length > 5) {
+            //     return 'Too Long!!!'
+            //   }
+            // },
           },
         },
         {
@@ -80,7 +93,7 @@ const schema = defineSchema({
             {
               name: 'post',
               type: 'reference',
-              collections: ['post'],
+              collections: ['post', 'page'],
             },
             {
               name: 'label',
@@ -172,10 +185,6 @@ const apiURL =
 export const tinaConfig = defineConfig({
   schema,
   apiURL,
-  cmsCallback: (cms) => {
-    cms.flags.set('tina-admin', true)
-    return cms
-  },
 })
 
 export default schema

@@ -1,5 +1,5 @@
 # Blueprint
-# getPostDocument
+# post
 #
 # Documents for blueprint
 # ================
@@ -11,17 +11,17 @@
 
 
 query MyQuery {
-  getPostDocument(relativePath: "post1.mdx") {
-    data {
-      title
-    }
-    _internalSys: sys {
-      path
-      collection {
-        name
+  post(relativePath: "post1.mdx") {
+    title
+    ... on Document {
+      _internalSys: _sys {
+        path
+        relativePath
+        collection {
+          name
+        }
       }
+      _values
     }
-    form
-    values
   }
 }

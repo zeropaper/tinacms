@@ -10,7 +10,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-
+import chalk from 'chalk'
 export const adminPage = `import { TinaAdmin } from 'tinacms';
 export default TinaAdmin;
 `
@@ -20,7 +20,7 @@ title: Vote For Pedro
 ---
 # Welcome to the blog.
 
-> To edit this site head over to the [\`/admin\`](/admin) route. Then click the pencil icon in the bottom lefthand corner to start editing 🦙. 
+> To edit this site head over to the [\`/admin\`](/admin) route. Then click the pencil icon in the bottom lefthand corner to start editing 🦙.
 
 # Dixi gaude Arethusa
 
@@ -44,68 +44,62 @@ mille rigidi sub taurum.
 
 `
 
-export const nextPostPage =
-  () => `// THIS FILE HAS BEEN GENERATED WITH THE TINA CLI.
+export const nextPostPage = ({
+  usingSrc,
+}: {
+  usingSrc: boolean
+}) => `// THIS FILE HAS BEEN GENERATED WITH THE TINA CLI.
   // This is a demo file once you have tina setup feel free to delete this file
   
-  import { staticRequest, gql } from "tinacms";
-  import Head from "next/head";
-  import { createGlobalStyle } from "styled-components";
-  import { useTina } from "tinacms/dist/edit-state";
+  import Head from 'next/head'
+  import { createGlobalStyle } from 'styled-components'
+  import { useTina } from 'tinacms/dist/edit-state'
   import { TinaMarkdown } from 'tinacms/dist/rich-text'
-
-  const query = gql\`
-    query BlogPostQuery($relativePath: String!) {
-      getPostsDocument(relativePath: $relativePath) {
-        data {
-        title
-          body
-        }
-      }
-    }
-  \`
-
+  import client from '${
+    usingSrc ? '../' : ''
+  }../../../.tina/__generated__/client'
+  
   // Styles for markdown
   const GlobalStyle = createGlobalStyle\`
-  h1,h2,h3,h4,h5 {
-    margin-bottom: 1.5rem;
-    margin-top: 1.5rem;
-  }
-  blockquote {
-    background-color: rgb(209,250,229);
-  }
-  h1 {
-    font-size: 45px;
-  }
-  h2 {
-    font-size: 35px;
-  }
-  h3 {
-    font-size: 25px;
-  }
-  h4 {
-    font-size: 22px;
-  }
-  ul {
-    padding-left: 0;
-  }
-  li {
-    list-style-type: none;
-  }
-  a {
-    font-weight: bold;
-    color: rgb(59,130,246);
-    text-decoration: underline;
-  }
-  \`;
+    h1,h2,h3,h4,h5 {
+      margin-bottom: 1.5rem;
+      margin-top: 1.5rem;
+    }
+    blockquote {
+      background-color: rgb(209,250,229);
+    }
+    h1 {
+      font-size: 45px;
+    }
+    h2 {
+      font-size: 35px;
+    }
+    h3 {
+      font-size: 25px;
+    }
+    h4 {
+      font-size: 22px;
+    }
+    ul {
+      padding-left: 0;
+    }
+    li {
+      list-style-type: none;
+    }
+    a {
+      font-weight: bold;
+      color: rgb(59,130,246);
+      text-decoration: underline;
+    }
+    \`
   
   const BlogPage = (props) => {
     const { data } = useTina({
-      query,
+      query: props.query,
       variables: props.variables,
       data: props.data,
-    });
-
+    })
+  
     return (
       <>
         <Head>
@@ -121,15 +115,13 @@ export const nextPostPage =
         <div>
           <div
             style={{
-              textAlign: "center",
+              textAlign: 'center',
             }}
           >
             <h1 className="text-3xl m-8 text-center leading-8 font-extrabold tracking-tight text-gray-900 sm:text-4xl">
-              {data.getPostsDocument.data.title}
+              {data.post.title}
             </h1>
-            <ContentSection
-              content={data.getPostsDocument.data.body}
-            ></ContentSection>
+            <ContentSection content={data.post.body}></ContentSection>
           </div>
           <div className="bg-green-100 text-center">
             Lost and looking for a place to start?
@@ -137,73 +129,61 @@ export const nextPostPage =
               href="https://tina.io/guides/tina-cloud/getting-started/overview/"
               className="text-blue-500 underline"
             >
-              {" "}
+              {' '}
               Check out this guide
-            </a>{" "}
+            </a>{' '}
             to see how add TinaCMS to an existing Next.js site.
           </div>
         </div>
       </>
-    );
-  };
+    )
+  }
   
   export const getStaticProps = async ({ params }) => {
-    const variables = { relativePath: \`\${params.filename}.md\` }
     let data = {}
+    let query = {}
+    let variables = { relativePath: \`\${params.filename}.mdx\` }
     try {
-      data = await staticRequest({
-        query,
-        variables,
-      })
+      const res = await client.queries.post(variables)
+      query = res.query
+      data = res.data
+      variables = res.variables
     } catch {
       // swallow errors related to document creation
     }
-
+  
     return {
       props: {
-        variables,
-        data,
+        variables: variables,
+        data: data,
+        query: query,
         //myOtherProp: 'some-other-data',
       },
     }
-  };
+  }
   
   export const getStaticPaths = async () => {
-    const postsListData = (await staticRequest({
-      query: gql\`
-        query GetPostsList {
-          getPostsList {
-            edges {
-              node {
-                sys {
-                  filename
-                }
-              }
-            }
-          }
-        }
-      \`,
-    }));
+    const postsListData = await client.queries.postConnection()
   
     return {
-      paths: postsListData.getPostsList.edges.map((post) => ({
-        params: { filename: post.node.sys.filename },
+      paths: postsListData.data.postConnection.edges.map((post) => ({
+        params: { filename: post.node._sys.filename },
       })),
       fallback: false,
-    };
-  };
+    }
+  }
   
-  export default BlogPage;
-
-  const PageSection = props => {
+  export default BlogPage
+  
+  const PageSection = (props) => {
     return (
       <>
-        <h2>{ props.heading }</h2>
-        <p>{ props.content }</p>
+        <h2>{props.heading}</h2>
+        <p>{props.content}</p>
       </>
     )
   }
-
+  
   const components = {
     PageSection: PageSection,
   }
@@ -316,24 +296,22 @@ export const nextPostPage =
         </div>
         <div className="relative px-4 sm:px-6 lg:px-8">
           <div className="text-lg max-w-prose mx-auto">
-            <TinaMarkdown components={components} content={content}/>
+            <TinaMarkdown components={components} content={content} />
             <GlobalStyle />
           </div>
         </div>
       </div>
-    );
-  };
-  
-`
+    )
+  }`
 
-export const AppJsContent = (
-  usingSrc: boolean,
-  extraImports?: string
-) => `import Tina from '${
-  usingSrc ? '../' : ''
-}../.tina/components/TinaDynamicProvider.js'
+export const AppJsContent = (usingSrc: boolean, extraImports?: string) => {
+  const importLine = `import Tina from '${
+    usingSrc ? '../' : ''
+  }../.tina/components/TinaDynamicProvider.js'`
 
+  return `${importLine}
 ${extraImports || ''}
+
 const App = ({ Component, pageProps }) => {
   return (
     <Tina>
@@ -343,5 +321,29 @@ const App = ({ Component, pageProps }) => {
 }
 
 export default App
-
 `
+}
+export const AppJsContentPrintout = (
+  usingSrc: boolean,
+  extraImports?: string
+) => {
+  const importLine = chalk.green(
+    `+ import Tina from '${
+      usingSrc ? '../' : ''
+    }../.tina/components/TinaDynamicProvider.js'`
+  )
+
+  return `${importLine}
+  ${extraImports || ''}
+
+  const App = ({ Component, pageProps }) => {
+  return (
+    ${chalk.green('+ <Tina>')}
+        <Component {...pageProps} />
+    ${chalk.green('+ </Tina>')}
+  )
+}
+
+export default App
+`
+}

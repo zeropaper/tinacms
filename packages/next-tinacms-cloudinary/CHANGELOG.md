@@ -1,5 +1,47 @@
 # next-tinacms-cloudinary
 
+## 3.5.30
+
+### Patch Changes
+
+- b369d7238: Update dependencies to fix vulnerabilities in external packages.
+
+## 3.5.29
+
+### Patch Changes
+
+- ae23e9ad6: Remove unused deps from monorepo
+
+## 3.5.28
+
+## 3.5.27
+
+## 3.5.26
+
+## 3.5.25
+
+## 3.5.24
+
+## 3.5.23
+
+## 3.5.22
+
+## 3.5.21
+
+## 3.5.20
+
+## 3.5.19
+
+## 3.5.18
+
+## 3.5.17
+
+## 3.5.16
+
+## 3.5.15
+
+## 3.5.14
+
 ## 3.5.13
 
 ## 3.5.12

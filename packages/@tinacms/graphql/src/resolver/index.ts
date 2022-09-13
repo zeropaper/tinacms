@@ -11,12 +11,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import _ from 'lodash'
 import path from 'path'
-import { TinaSchema } from '../schema'
+import { Database } from '../database'
 import { assertShape, lastItem, sequential } from '../util'
 import { NAMER } from '../ast-builder'
-import { Database } from '../database'
 import isValid from 'date-fns/isValid'
 import { parseMDX, stringifyMDX } from '../mdx'
 
@@ -26,15 +24,27 @@ import type {
   Templateable,
   TinaCloudCollection,
   TinaFieldEnriched,
-} from '../types'
-import { Template, TinaFieldInner } from '../types'
-import { TinaError } from './error'
+  Template,
+  TinaFieldInner,
+  TinaSchema,
+} from '@tinacms/schema-tools'
+
+import type { GraphQLConfig } from '../types'
+
+import { TinaGraphQLError, TinaParseDocumentError } from './error'
 import { FilterCondition, makeFilterChain } from '@tinacms/datalayer'
 import { collectConditionsForField, resolveReferences } from './filter-utils'
+import {
+  resolveMediaRelativeToCloud,
+  resolveMediaCloudToRelative,
+} from './media-utils'
+import { GraphQLError } from 'graphql'
 
 interface ResolverConfig {
+  config?: GraphQLConfig
   database: Database
   tinaSchema: TinaSchema
+  isAudit: boolean
 }
 
 export const createResolver = (args: ResolverConfig) => {
@@ -46,13 +56,18 @@ export const createResolver = (args: ResolverConfig) => {
  * values and retrieves them from the database
  */
 export class Resolver {
+  public config: GraphQLConfig
   public database: Database
   public tinaSchema: TinaSchema
+  public isAudit: boolean
   constructor(public init: ResolverConfig) {
+    this.config = init.config
     this.database = init.database
     this.tinaSchema = init.tinaSchema
+    this.isAudit = init.isAudit
   }
   public resolveCollection = async (
+    args,
     collectionName: string,
     hasDocuments?: boolean
   ) => {
@@ -65,12 +80,10 @@ export class Resolver {
     // if (res.type === "union") {
     //   extraFields["templates"] = res.templates;
     // }
-    let documents = {}
-    if (hasDocuments) {
-      documents = await this.getDocumentsForCollection(collectionName)
-    }
+
     return {
-      documents,
+      // return the collection and hasDocuments to resolve documents at a lower level
+      documents: { collection: collection, hasDocuments },
       ...collection,
       ...extraFields,
     }
@@ -98,35 +111,47 @@ export class Resolver {
       } = path.parse(fullPath)
 
       const relativePath = fullPath
-        .replace('\\', '/')
+        .replace(/\\/g, '/')
         .replace(collection.path, '')
         .replace(/^\/|\/$/g, '')
 
       const breadcrumbs = relativePath.replace(extension, '').split('/')
 
-      // This is where the form is generated
-      const form = {
-        label: collection.label,
-        name: basename,
-        fields: await sequential(template.fields, async (field) => {
-          // fieldNode.selectionSet?.selections.find(selection => {
-          //   selection
-          // })
-          return this.resolveField(field)
-        }),
-      }
       const data = {
         _collection: rawData._collection,
         _template: rawData._template,
       }
-      await sequential(template.fields, async (field) =>
-        this.resolveFieldData(field, rawData, data)
-      )
+      try {
+        await sequential(template.fields, async (field) => {
+          return this.resolveFieldData(field, rawData, data)
+        })
+      } catch (e) {
+        throw new TinaParseDocumentError({
+          originalError: e,
+          collection: collection.name,
+          includeAuditMessage: !this.isAudit,
+          file: relativePath,
+          stack: e.stack,
+        })
+      }
+
+      const titleField = template.fields.find((x) => {
+        // @ts-ignore
+        if (x.type === 'string' && x?.isTitle) {
+          return true
+        }
+      })
+      const titleFieldName = titleField?.name
+      const title = data[titleFieldName || ' '] || null
 
       return {
-        __typename: NAMER.documentTypeName([rawData._collection]),
+        __typename: collection.fields
+          ? NAMER.documentTypeName(collection.namespace)
+          : NAMER.documentTypeName(template.namespace),
         id: fullPath,
-        sys: {
+        ...data,
+        _sys: {
+          title,
           basename,
           filename,
           extension,
@@ -136,15 +161,12 @@ export class Resolver {
           collection,
           template: lastItem(template.namespace),
         },
-        data,
-        values: data,
-        dataJSON: data,
-        form: form,
+        _values: data,
       }
     } catch (e) {
-      if (e instanceof TinaError) {
+      if (e instanceof TinaGraphQLError) {
         // Attach additional information
-        throw new TinaError(e.message, {
+        throw new TinaGraphQLError(e.message, {
           requestedDocument: fullPath,
           ...e.extensions,
         })
@@ -152,73 +174,12 @@ export class Resolver {
       throw e
     }
   }
-
-  public getDocumentFields = async () => {
-    try {
-      const response = {}
-      const collections = await this.tinaSchema.getCollections()
-
-      /**
-       * Iterate through collections...
-       */
-      await sequential(collections, async (collection) => {
-        const collectable =
-          this.tinaSchema.getTemplatesForCollectable(collection)
-
-        switch (collectable.type) {
-          /**
-           * Collection with no templates...
-           */
-          case 'object':
-            if (collectable.required) {
-              console.warn(
-                "WARNING: `{type: 'object', required: true}` is unsupported by our User Interface and could result in errors"
-              )
-            }
-            response[collection.name] = {
-              collection,
-              fields: await sequential(
-                collectable.template.fields,
-                async (field) => {
-                  return this.resolveField(field)
-                }
-              ),
-              mutationInfo: {
-                includeCollection: true,
-                includeTemplate: false,
-              },
-            }
-            break
-          /**
-           * Collection with n templates...
-           */
-          case 'union':
-            const templates = {}
-            /**
-             * Iterate through templates...
-             */
-            await sequential(collectable.templates, async (template) => {
-              templates[lastItem(template.namespace)] = {
-                template,
-                fields: await sequential(template.fields, async (field) => {
-                  return this.resolveField(field)
-                }),
-              }
-            })
-
-            response[collection.name] = {
-              collection,
-              templates,
-              mutationInfo: { includeCollection: true, includeTemplate: true },
-            }
-            break
-        }
-      })
-
-      return response
-    } catch (e) {
-      throw e
+  public deleteDocument = async (fullPath: unknown) => {
+    if (typeof fullPath !== 'string') {
+      throw new Error(`fullPath must be of type string for getDocument request`)
     }
+
+    await this.database.delete(fullPath)
   }
 
   public buildObjectMutations = (fieldValue: any, field: Collectable) => {
@@ -362,7 +323,7 @@ export class Resolver {
     )
 
     // @ts-ignore
-    await this.database.put(realPath, params)
+    await this.database.put(realPath, params, collection.name)
     return this.getDocument(realPath)
   }
 
@@ -394,7 +355,7 @@ export class Resolver {
               params,
               templateInfo.template
             )
-            await this.database.put(realPath, values)
+            await this.database.put(realPath, values, collection.name)
           }
           break
         case 'union':
@@ -412,7 +373,7 @@ export class Resolver {
                 ...this.buildFieldMutations(templateParams, template),
                 _template: lastItem(template.namespace),
               }
-              await this.database.put(realPath, values)
+              await this.database.put(realPath, values, collection.name)
             }
           })
       }
@@ -425,7 +386,7 @@ export class Resolver {
       collection
     )
     //@ts-ignore
-    await this.database.put(realPath, params)
+    await this.database.put(realPath, params, collection.name)
     return this.getDocument(realPath)
   }
 
@@ -434,6 +395,7 @@ export class Resolver {
     collection: collectionName,
     isMutation,
     isCreation,
+    isDeletion,
     isAddPendingDocument,
     isCollectionSpecific,
   }: {
@@ -441,6 +403,7 @@ export class Resolver {
     collection?: string
     isMutation: boolean
     isCreation?: boolean
+    isDeletion?: boolean
     isAddPendingDocument?: boolean
     isCollectionSpecific?: boolean
   }) => {
@@ -497,6 +460,16 @@ export class Resolver {
           isAddPendingDocument,
         })
       }
+      if (isDeletion) {
+        if (!alreadyExists) {
+          throw new Error(
+            `Unable to delete document, ${realPath} does not exist`
+          )
+        }
+        const doc = await this.getDocument(realPath)
+        await this.deleteDocument(realPath)
+        return doc
+      }
       /**
        * updateDocument, update<Collection>Document
        */
@@ -528,11 +501,6 @@ export class Resolver {
         }
       }),
     }
-  }
-
-  public getDocumentsForCollection = async (collectionName: string) => {
-    const collection = this.tinaSchema.getCollection(collectionName)
-    return this.database.store.glob(collection.path, this.getDocument)
   }
 
   private referenceResolver = async (
@@ -620,64 +588,63 @@ export class Resolver {
     collection: TinaCloudCollection<true>
     hydrator?: (string) => any
   }) => {
-    let edges
-    let pageInfo
-
-    if (args.filter || args.sort) {
-      let conditions: FilterCondition[]
-      if (args.filter) {
-        if (collection.fields) {
-          conditions = await this.resolveFilterConditions(
-            args.filter as Record<string, Record<string, object>>,
-            collection.fields as TinaFieldInner<false>[],
-            collection.name
+    let conditions: FilterCondition[]
+    if (args.filter) {
+      if (collection.fields) {
+        conditions = await this.resolveFilterConditions(
+          args.filter as Record<string, Record<string, object>>,
+          collection.fields as TinaFieldInner<false>[],
+          collection.name
+        )
+      } else if (collection.templates) {
+        for (const templateName of Object.keys(args.filter)) {
+          const template = (collection.templates as Template<false>[]).find(
+            (template) => template.name === templateName
           )
-        } else if (collection.templates) {
-          for (const templateName of Object.keys(args.filter)) {
-            const template = (collection.templates as Template<false>[]).find(
-              (template) => template.name === templateName
-            )
 
-            if (template) {
-              conditions = await this.resolveFilterConditions(
-                args.filter[templateName],
-                template.fields as TinaFieldInner<false>[],
-                `${collection.name}.${templateName}`
-              )
-            } else {
-              throw new Error(
-                `Error template not found: ${templateName} in collection ${collection.name}`
-              )
-            }
+          if (template) {
+            conditions = await this.resolveFilterConditions(
+              args.filter[templateName],
+              template.fields as TinaFieldInner<false>[],
+              `${collection.name}.${templateName}`
+            )
+          } else {
+            throw new Error(
+              `Error template not found: ${templateName} in collection ${collection.name}`
+            )
           }
         }
       }
-
-      const queryOptions = {
-        filterChain: makeFilterChain({
-          conditions: conditions || [],
-        }),
-        collection: collection.name,
-        sort: args.sort as string,
-        first: args.first as number,
-        last: args.last as number,
-        before: args.before as string,
-        after: args.after as string,
-      }
-
-      const result = await this.database.query(
-        queryOptions,
-        hydrator ? hydrator : this.getDocument
-      )
-      edges = result.edges
-      pageInfo = result.pageInfo
-    } else {
-      edges = (
-        await this.database.store.glob(collection.path, this.getDocument)
-      ).map((document) => ({
-        node: document,
-      }))
     }
+
+    const queryOptions = {
+      filterChain: makeFilterChain({
+        conditions: conditions || [],
+      }),
+      collection: collection.name,
+      sort: args.sort as string,
+      first: args.first as number,
+      last: args.last as number,
+      before: args.before as string,
+      after: args.after as string,
+    }
+
+    const result = await this.database.query(
+      queryOptions,
+      hydrator ? hydrator : this.getDocument
+    )
+    const edges = result.edges
+    const pageInfo = result.pageInfo
+
+    // This was the non datalayer code
+    // } else {
+    //   const ext = collection?.format || '.md'
+    //   edges = (
+    //     await this.database.store.glob(collection.path, this.getDocument, ext)
+    //   ).map((document) => ({
+    //     node: document,
+    //   }))
+    // }
 
     return {
       totalCount: edges.length,
@@ -714,15 +681,27 @@ export class Resolver {
         case 'string':
         case 'boolean':
         case 'number':
-        case 'image':
           accum[fieldName] = fieldValue
+          break
+        case 'image':
+          accum[fieldName] = resolveMediaCloudToRelative(
+            fieldValue as string,
+            this.config,
+            this.tinaSchema.schema
+          )
           break
         case 'object':
           accum[fieldName] = this.buildObjectMutations(fieldValue, field)
           break
         case 'rich-text':
-          field
-          accum[fieldName] = stringifyMDX(fieldValue, field)
+          // @ts-ignore
+          accum[fieldName] = stringifyMDX(fieldValue, field, (fieldValue) =>
+            resolveMediaCloudToRelative(
+              fieldValue as string,
+              this.config,
+              this.tinaSchema.schema
+            )
+          )
           break
         case 'reference':
           accum[fieldName] = fieldValue
@@ -758,12 +737,36 @@ export class Resolver {
       case 'boolean':
       case 'number':
       case 'reference':
-      case 'image':
         accumulator[field.name] = value
+        break
+      case 'image':
+        accumulator[field.name] = resolveMediaRelativeToCloud(
+          value as string,
+          this.config,
+          this.tinaSchema.schema
+        )
         break
       case 'rich-text':
         // @ts-ignore value is unknown
-        const tree = parseMDX(value, field)
+        const tree = parseMDX(value, field, (value) =>
+          resolveMediaRelativeToCloud(
+            value,
+            this.config,
+            this.tinaSchema.schema
+          )
+        )
+        if (tree?.children[0]?.type === 'invalid_markdown') {
+          if (this.isAudit) {
+            const invalidNode = tree?.children[0]
+            throw new GraphQLError(
+              `${invalidNode?.message}${
+                invalidNode.position
+                  ? ` at line ${invalidNode.position.start.line}, column ${invalidNode.position.start.column}`
+                  : ''
+              }`
+            )
+          }
+        }
         accumulator[field.name] = tree
         break
       case 'object':
@@ -873,183 +876,6 @@ export class Resolver {
       })
     )
     return args.params
-  }
-
-  private resolveField = async ({
-    namespace,
-    ...field
-  }: TinaFieldEnriched): Promise<unknown> => {
-    // @ts-ignore FIXME: `resolveField` will soon be deprecated in favor of client-side field builder
-    field.parentTypename = NAMER.dataTypeName(
-      // Get the type of the parent namespace
-      namespace.filter((_, i) => i < namespace.length - 1)
-    )
-    const extraFields = field.ui || {}
-    switch (field.type) {
-      case 'number':
-        return {
-          component: 'number',
-          ...field,
-          ...extraFields,
-        }
-      case 'datetime':
-        return {
-          component: 'date',
-          ...field,
-          ...extraFields,
-        }
-      case 'boolean':
-        return {
-          component: 'toggle',
-          ...field,
-          ...extraFields,
-        }
-      case 'image':
-        return {
-          component: 'image',
-          clearable: true,
-          ...field,
-          ...extraFields,
-        }
-      case 'string':
-        if (field.options) {
-          if (field.list) {
-            return {
-              component: 'checkbox-group',
-              ...field,
-              ...extraFields,
-              options: field.options,
-            }
-          }
-          return {
-            component: 'select',
-            ...field,
-            ...extraFields,
-            options: [
-              { label: `Choose an option`, value: '' },
-              ...field.options,
-            ],
-          }
-        }
-        if (field.list) {
-          return {
-            // Allows component to be overridden for scalars
-            component: 'list',
-            field: {
-              component: 'text',
-            },
-            ...field,
-            ...extraFields,
-          }
-        }
-        return {
-          // Allows component to be overridden for scalars
-          component: 'text',
-          ...field,
-          ...extraFields,
-        }
-      case 'object':
-        const templateInfo = this.tinaSchema.getTemplatesForCollectable({
-          ...field,
-          namespace,
-        })
-        if (templateInfo.type === 'object') {
-          // FIXME: need to finish group/group-list
-          return {
-            ...field,
-            component: field.list ? 'group-list' : 'group',
-            fields: await sequential(
-              templateInfo.template.fields,
-              async (field) => await this.resolveField(field)
-            ),
-            ...extraFields,
-          }
-        } else if (templateInfo.type === 'union') {
-          const templates: { [key: string]: object } = {}
-          const typeMap: { [key: string]: string } = {}
-          await sequential(templateInfo.templates, async (template) => {
-            const extraFields = template.ui || {}
-            const templateName = lastItem(template.namespace)
-            typeMap[templateName] = NAMER.dataTypeName(template.namespace)
-            templates[lastItem(template.namespace)] = {
-              // @ts-ignore FIXME `Templateable` should have name and label properties
-              label: template.label || templateName,
-              key: templateName,
-              fields: await sequential(
-                template.fields,
-                async (field) => await this.resolveField(field)
-              ),
-              ...extraFields,
-            }
-            return true
-          })
-          return {
-            ...field,
-            typeMap,
-            component: field.list ? 'blocks' : 'not-implemented',
-            templates,
-            ...extraFields,
-          }
-        } else {
-          throw new Error(`Unknown object for resolveField function`)
-        }
-      case 'rich-text':
-        const templates: { [key: string]: object } = {}
-        const typeMap: { [key: string]: string } = {}
-        await sequential(field.templates, async (template) => {
-          if (typeof template === 'string') {
-            throw new Error(`Global templates not yet supported for rich-text`)
-          } else {
-            const extraFields = template.ui || {}
-            const templateName = lastItem(template.namespace)
-            typeMap[templateName] = NAMER.dataTypeName(template.namespace)
-            templates[lastItem(template.namespace)] = {
-              // @ts-ignore FIXME `Templateable` should have name and label properties
-              label: template.label || templateName,
-              key: templateName,
-              inline: template.inline,
-              name: templateName,
-              fields: await sequential(
-                template.fields,
-                async (field) => await this.resolveField(field)
-              ),
-              ...extraFields,
-            }
-            return true
-          }
-        })
-        return {
-          ...field,
-          templates: Object.values(templates),
-          component: 'rich-text',
-          ...extraFields,
-        }
-      case 'reference':
-        const documents = _.flatten(
-          await sequential(field.collections, async (collectionName) => {
-            const collection = this.tinaSchema.getCollection(collectionName)
-            return this.database.store.glob(collection.path)
-          })
-        )
-
-        return {
-          ...field,
-          component: 'reference',
-          options: [
-            { label: 'Choose an option', value: '' },
-            ...documents.map((document) => {
-              return {
-                value: document,
-                label: document,
-              }
-            }),
-          ],
-          ...extraFields,
-        }
-      default:
-        // @ts-ignore
-        throw new Error(`Unknown field type ${field.type}`)
-    }
   }
 }
 

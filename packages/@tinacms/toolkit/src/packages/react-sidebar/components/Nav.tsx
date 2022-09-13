@@ -26,6 +26,8 @@ import { FormModal } from '../../react-forms'
 import { useEditState } from '@tinacms/sharedctx'
 import type { ScreenPlugin } from '../../react-screens'
 import { LoadingDots } from '../../form-builder'
+import { SyncStatus, SyncErrorWidget } from './SyncStatus'
+import { useCMS } from '../../react-core'
 
 interface NavProps {
   children?: any
@@ -57,6 +59,7 @@ export const Nav = ({
   RenderNavCollection,
   ...props
 }: NavProps) => {
+  const cms = useCMS()
   const { setEdit } = useEditState()
 
   return (
@@ -70,7 +73,7 @@ export const Nav = ({
           {({ open }) => (
             <div>
               <Menu.Button
-                className={`group w-full px-6 py-3 flex justify-between items-center transition-colors duration-150 ease-out ${
+                className={`group w-full px-6 py-3 gap-2 flex justify-between items-center transition-colors duration-150 ease-out ${
                   open ? `bg-gray-50` : `bg-transparent`
                 }`}
               >
@@ -86,9 +89,12 @@ export const Nav = ({
                   </svg>
                   <span>Tina</span>
                 </span>
+                <SyncErrorWidget cms={cms} />
                 <FiMoreVertical
-                  className={`flex-0 w-6 h-full inline-block text-gray-500  group-hover:opacity-80 transition-all duration-300 ease-in-out transform ${
-                    open ? `opacity-100` : `opacity-30 hover:opacity-50`
+                  className={`flex-0 w-6 h-full inline-block group-hover:opacity-80 transition-all duration-300 ease-in-out transform ${
+                    open
+                      ? `opacity-100 text-blue-400`
+                      : `text-gray-400 opacity-50 hover:opacity-70`
                   }`}
                 />
               </Menu.Button>
@@ -101,26 +107,25 @@ export const Nav = ({
                   leaveFrom="transform opacity-100 translate-y-0"
                   leaveTo="transform opacity-0 -translate-y-2"
                 >
-                  <Menu.Items className="bg-white border border-gray-150 rounded-lg shadow-lg">
+                  <Menu.Items className="bg-white border border-gray-150 rounded-lg shadow-lg flex flex-col items-stretch overflow-hidden">
                     <Menu.Item>
-                      {({ active }) => (
-                        <button
-                          className={`text-lg px-4 py-2 first:pt-3 last:pb-3 tracking-wide whitespace-nowrap flex items-center opacity-80 text-gray-600 ${
-                            active && 'text-blue-400 bg-gray-50 opacity-100'
-                          }`}
-                          onClick={() => {
-                            updateBodyDisplacement({
-                              displayState: 'closed',
-                              sidebarWidth: null,
-                              resizingSidebar: false,
-                            })
-                            setEdit(false)
-                          }}
-                        >
-                          <BiExit className="w-6 h-auto mr-2 text-blue-400" />{' '}
-                          Log Out
-                        </button>
-                      )}
+                      <button
+                        className={`text-lg px-4 py-2 first:pt-3 last:pb-3 tracking-wide whitespace-nowrap flex items-center opacity-80 text-gray-600 hover:text-blue-400 hover:bg-gray-50 hover:opacity-100`}
+                        onClick={() => {
+                          updateBodyDisplacement({
+                            displayState: 'closed',
+                            sidebarWidth: null,
+                            resizingSidebar: false,
+                          })
+                          setEdit(false)
+                        }}
+                      >
+                        <BiExit className="w-6 h-auto mr-2 text-blue-400" /> Log
+                        Out
+                      </button>
+                    </Menu.Item>
+                    <Menu.Item>
+                      <SyncStatus cms={cms} />
                     </Menu.Item>
                   </Menu.Items>
                 </Transition>
@@ -133,7 +138,7 @@ export const Nav = ({
       <div className="px-6 flex-1 overflow-auto">
         {showCollections && (
           <>
-            <h4 className="uppercase font-bold text-sm mb-3 mt-8 text-gray-700">
+            <h4 className="uppercase font-sans font-bold text-sm mb-3 mt-8 text-gray-700">
               Collections
             </h4>
             <CollectionsList
@@ -144,7 +149,7 @@ export const Nav = ({
         )}
         {(screens.length > 0 || contentCreators.length) > 0 && (
           <>
-            <h4 className="uppercase font-bold text-sm mb-3 mt-8 text-gray-700">
+            <h4 className="uppercase font-sans font-bold text-sm mb-3 mt-8 text-gray-700">
               Site
             </h4>
             <ul className="flex flex-col gap-4">

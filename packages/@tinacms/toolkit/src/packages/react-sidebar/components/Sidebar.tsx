@@ -17,39 +17,53 @@ limitations under the License.
 */
 
 import * as React from 'react'
-import { useState, useEffect } from 'react'
-import { FormsView } from './SidebarBody'
+
 import { BiMenu, BiPencil } from 'react-icons/bi'
 import { BsArrowsAngleContract, BsArrowsAngleExpand } from 'react-icons/bs'
-import { MdOutlineArrowBackIos } from 'react-icons/md'
-import { ImFilesEmpty } from 'react-icons/im'
-import { Button } from '../../styles'
 import { ScreenPlugin, ScreenPluginModal } from '../../react-screens'
-import { useSubscribable, useCMS } from '../../react-core'
-import { ResizeHandle } from './ResizeHandle'
 import { SidebarState, SidebarStateOptions } from '../sidebar'
-import { LocalWarning } from './LocalWarning'
-import { Nav } from './Nav'
-import { Transition } from '@headlessui/react'
+import { useCMS, useSubscribable } from '../../react-core'
+import { useEffect, useState } from 'react'
+
+import { Button } from '../../styles'
+import { FormsView } from './SidebarBody'
+import { ImFilesEmpty } from 'react-icons/im'
 import { IoMdClose } from 'react-icons/io'
+import { LocalWarning } from './LocalWarning'
+import { MdOutlineArrowBackIos } from 'react-icons/md'
+import { Nav } from './Nav'
+import { ResizeHandle } from './ResizeHandle'
+import { Transition } from '@headlessui/react'
+import { useWindowWidth } from '@react-hook/window-size'
 
 export const SidebarContext = React.createContext<any>(null)
 
 export const minPreviewWidth = 440
 export const minSidebarWidth = 360
 export const navBreakpoint = 1000
+
+const LOCALSTATEKEY = 'tina.sidebarState'
+const LOCALWIDTHKEY = 'tina.sidebarWidth'
+
 const defaultSidebarWidth = 440
 const defaultSidebarPosition = 'displace'
+const defaultSidebarState = 'open'
 
 export interface SidebarProviderProps {
   sidebar: SidebarState
+  resizingSidebar: boolean
+  setResizingSidebar: React.Dispatch<React.SetStateAction<boolean>>
   defaultWidth?: SidebarStateOptions['defaultWidth']
   position?: SidebarStateOptions['position']
+  defaultState?: SidebarStateOptions['defaultState']
 }
 
 export function SidebarProvider({
   position = defaultSidebarPosition,
+  resizingSidebar,
+  setResizingSidebar,
   defaultWidth = defaultSidebarWidth,
+  defaultState = defaultSidebarState,
   sidebar,
 }: SidebarProviderProps) {
   useSubscribable(sidebar)
@@ -60,7 +74,19 @@ export function SidebarProvider({
     <Sidebar
       // @ts-ignore
       position={cms?.sidebar?.position || position}
-      defaultWidth={defaultWidth}
+      // @ts-ignore
+      defaultWidth={cms?.sidebar?.defaultWidth || defaultWidth}
+      // @ts-ignore
+      defaultState={cms?.sidebar?.defaultState || defaultState}
+      resizingSidebar={resizingSidebar}
+      setResizingSidebar={setResizingSidebar}
+      renderNav={
+        // @ts-ignore
+        typeof cms?.sidebar?.renderNav !== 'undefined'
+          ? // @ts-ignore
+            cms.sidebar.renderNav
+          : true
+      }
       sidebar={sidebar}
     />
   )
@@ -68,8 +94,12 @@ export function SidebarProvider({
 
 interface SidebarProps {
   sidebar: SidebarState
+  resizingSidebar: boolean
+  setResizingSidebar: React.Dispatch<React.SetStateAction<boolean>>
   defaultWidth?: SidebarStateOptions['defaultWidth']
+  defaultState?: SidebarStateOptions['defaultState']
   position?: SidebarStateOptions['position']
+  renderNav?: boolean
 }
 
 type displayStates = 'closed' | 'open' | 'fullscreen'
@@ -82,14 +112,13 @@ const useFetchCollections = (cms) => {
     const fetchCollections = async () => {
       if (await cms.api.admin.isAuthenticated()) {
         try {
-          const response = await cms.api.admin.fetchCollections()
-          setCollections(response.getCollections)
+          const collections = await cms.api.admin.fetchCollections()
+          setCollections(collections)
         } catch (error) {
-          cms.alerts.error(
-            `[ERROR] GetCollections failed: ${error.message}`,
-            30 * 1000 // 30 seconds
-          )
           setCollections([])
+          throw new Error(
+            `[${error.name}] GetCollections failed: ${error.message}`
+          )
         }
 
         setLoading(false)
@@ -105,7 +134,15 @@ const useFetchCollections = (cms) => {
   return { collections, loading }
 }
 
-const Sidebar = ({ sidebar, defaultWidth, position }: SidebarProps) => {
+const Sidebar = ({
+  sidebar,
+  defaultWidth,
+  defaultState,
+  position,
+  renderNav,
+  resizingSidebar,
+  setResizingSidebar,
+}: SidebarProps) => {
   const cms = useCMS()
   const collectionsInfo = useFetchCollections(cms)
 
@@ -116,10 +153,51 @@ const Sidebar = ({ sidebar, defaultWidth, position }: SidebarProps) => {
 
   const [menuIsOpen, setMenuIsOpen] = useState(false)
   const [activeScreen, setActiveView] = useState<ScreenPlugin | null>(null)
-  const [displayState, setDisplayState] = React.useState<displayStates>('open')
+  const [displayState, setDisplayState] =
+    React.useState<displayStates>(defaultState)
   const [sidebarWidth, setSidebarWidth] = React.useState<any>(defaultWidth)
-  const [resizingSidebar, setResizingSidebar] = React.useState(false)
   const [formIsPristine, setFormIsPristine] = React.useState(true)
+
+  /* Set sidebar open state and width to local values if available */
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const localSidebarState = window.localStorage.getItem(LOCALSTATEKEY)
+      const localSidebarWidth = window.localStorage.getItem(LOCALWIDTHKEY)
+
+      if (localSidebarState !== null) {
+        setDisplayState(JSON.parse(localSidebarState))
+      }
+
+      if (localSidebarWidth !== null) {
+        setSidebarWidth(JSON.parse(localSidebarWidth))
+      }
+    }
+  }, [])
+
+  /* If the default sidebar state changes, update current state if no local value is found */
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const localSidebarState = window.localStorage.getItem(LOCALSTATEKEY)
+
+      if (localSidebarState === null) {
+        setDisplayState(defaultState)
+      }
+    }
+  }, [defaultState])
+
+  /* Update the local value of the sidebar state any time it updates, if the CMS is loaded */
+  React.useEffect(() => {
+    if (typeof window !== 'undefined' && cms.enabled) {
+      window.localStorage.setItem(LOCALSTATEKEY, JSON.stringify(displayState))
+    }
+  }, [displayState, cms])
+
+  /* Update the local value of the sidebar width any time the user drags to resize it */
+  React.useEffect(() => {
+    if (resizingSidebar) {
+      window.localStorage.setItem(LOCALWIDTHKEY, JSON.stringify(sidebarWidth))
+    }
+  }, [sidebarWidth, resizingSidebar])
 
   const isTinaAdminEnabled =
     cms.flags.get('tina-admin') === false ? false : true
@@ -156,9 +234,12 @@ const Sidebar = ({ sidebar, defaultWidth, position }: SidebarProps) => {
       if (displayState === 'fullscreen') {
         return
       }
-      if (position === 'displace') {
-        updateBodyDisplacement({ displayState, sidebarWidth, resizingSidebar })
-      }
+      updateBodyDisplacement({
+        position,
+        displayState,
+        sidebarWidth,
+        resizingSidebar,
+      })
     }
 
     updateLayout()
@@ -169,6 +250,15 @@ const Sidebar = ({ sidebar, defaultWidth, position }: SidebarProps) => {
       window.removeEventListener('resize', updateLayout)
     }
   }, [displayState, position, sidebarWidth, resizingSidebar])
+
+  const windowWidth = useWindowWidth()
+  const displayNav =
+    renderNav &&
+    ((sidebarWidth > navBreakpoint && windowWidth > navBreakpoint) ||
+      (displayState === 'fullscreen' && windowWidth > navBreakpoint))
+  const renderMobileNav =
+    renderNav &&
+    (sidebarWidth < navBreakpoint + 1 || windowWidth < navBreakpoint + 1)
 
   return (
     <SidebarContext.Provider
@@ -193,7 +283,7 @@ const Sidebar = ({ sidebar, defaultWidth, position }: SidebarProps) => {
       <>
         <SidebarWrapper>
           <EditButton />
-          {(sidebarWidth > navBreakpoint || displayState === 'fullscreen') && (
+          {displayNav && (
             <Nav
               showCollections={isTinaAdminEnabled}
               collectionsInfo={collectionsInfo}
@@ -210,12 +300,21 @@ const Sidebar = ({ sidebar, defaultWidth, position }: SidebarProps) => {
                 />
               )}
               RenderNavCollection={({ collection }) => (
-                <SidebarCollectionLink collection={collection} />
+                <SidebarCollectionLink
+                  onClick={() => {
+                    setMenuIsOpen(false)
+                  }}
+                  collection={collection}
+                />
               )}
             />
           )}
           <SidebarBody>
-            <SidebarHeader isLocalMode={cms.api?.tina?.isLocalMode} />
+            <SidebarHeader
+              displayNav={displayNav}
+              renderNav={renderNav}
+              isLocalMode={cms.api?.tina?.isLocalMode}
+            />
             <FormsView>
               <sidebar.placeholder />
             </FormsView>
@@ -228,7 +327,7 @@ const Sidebar = ({ sidebar, defaultWidth, position }: SidebarProps) => {
           </SidebarBody>
           <ResizeHandle />
         </SidebarWrapper>
-        {sidebarWidth < navBreakpoint + 1 && (
+        {renderMobileNav && (
           <Transition show={menuIsOpen}>
             <Transition.Child
               as={React.Fragment}
@@ -257,7 +356,12 @@ const Sidebar = ({ sidebar, defaultWidth, position }: SidebarProps) => {
                     />
                   )}
                   RenderNavCollection={({ collection }) => (
-                    <SidebarCollectionLink collection={collection} />
+                    <SidebarCollectionLink
+                      onClick={() => {
+                        setMenuIsOpen(false)
+                      }}
+                      collection={collection}
+                    />
                   )}
                 >
                   <div className="absolute top-8 right-0 transform translate-x-full overflow-hidden">
@@ -300,6 +404,7 @@ const Sidebar = ({ sidebar, defaultWidth, position }: SidebarProps) => {
 }
 
 export const updateBodyDisplacement = ({
+  position = 'overlay',
   displayState,
   sidebarWidth,
   resizingSidebar,
@@ -307,38 +412,40 @@ export const updateBodyDisplacement = ({
   const body = document.getElementsByTagName('body')[0]
   const windowWidth = window.innerWidth
 
-  // Transition displacement when not dragging sidebar (opening/closing sidebar)
-  if (!resizingSidebar) {
-    body.style.transition = 'all 200ms ease-out'
+  if (position === 'displace') {
+    // Transition displacement when not dragging sidebar (opening/closing sidebar)
+    if (!resizingSidebar) {
+      body.style.transition = 'all 200ms ease-out'
+    } else {
+      body.style.transition = ''
+    }
+
+    if (displayState === 'open') {
+      const bodyDisplacement = Math.min(
+        sidebarWidth,
+        windowWidth - minPreviewWidth
+      )
+      body.style.paddingLeft = bodyDisplacement - 6 + 'px'
+    } else {
+      body.style.paddingLeft = '0'
+    }
   } else {
     body.style.transition = ''
-  }
-
-  if (displayState === 'open') {
-    const bodyDisplacement = Math.min(
-      sidebarWidth,
-      windowWidth - minPreviewWidth
-    )
-    body.style.paddingLeft = bodyDisplacement - 6 + 'px'
-  } else {
     body.style.paddingLeft = '0'
   }
 }
 
-const SidebarHeader = ({ isLocalMode }) => {
-  const {
-    toggleFullscreen,
-    displayState,
-    setMenuIsOpen,
-    toggleSidebarOpen,
-    sidebarWidth,
-  } = React.useContext(SidebarContext)
+const SidebarHeader = ({ renderNav, displayNav, isLocalMode }) => {
+  const { toggleFullscreen, displayState, setMenuIsOpen, toggleSidebarOpen } =
+    React.useContext(SidebarContext)
+
+  const displayMenuButton = renderNav && !displayNav
 
   return (
     <div className="flex-grow-0 w-full overflow-visible z-20">
       {isLocalMode && <LocalWarning />}
       <div className="mt-4 -mb-14 w-full flex items-center justify-between pointer-events-none">
-        {sidebarWidth < navBreakpoint + 1 && displayState !== 'fullscreen' && (
+        {displayMenuButton && (
           <Button
             rounded="right"
             variant="secondary"
@@ -401,20 +508,29 @@ const SidebarSiteLink = ({
 
 const SidebarCollectionLink = ({
   collection,
+  onClick,
 }: {
   collection: {
     label: string
     name: string
   }
-}) => (
-  <a
-    href={`/admin#/collections/${collection.name}`}
-    className="text-base tracking-wide text-gray-500 hover:text-blue-600 flex items-center opacity-90 hover:opacity-100"
-  >
-    <ImFilesEmpty className="mr-2 h-6 opacity-80 w-auto" />{' '}
-    {collection.label ? collection.label : collection.name}
-  </a>
-)
+  onClick: () => void
+}) => {
+  const cms = useCMS()
+  const tinaPreview = cms.flags.get('tina-preview') || false
+  return (
+    <a
+      onClick={onClick}
+      href={`${
+        tinaPreview ? `/${tinaPreview}/index.html#` : '/admin#'
+      }/collections/${collection.name}`}
+      className="text-base tracking-wide text-gray-500 hover:text-blue-600 flex items-center opacity-90 hover:opacity-100"
+    >
+      <ImFilesEmpty className="mr-2 h-6 opacity-80 w-auto" />{' '}
+      {collection.label ? collection.label : collection.name}
+    </a>
+  )
+}
 
 const EditButton = ({}) => {
   const { displayState, toggleSidebarOpen } = React.useContext(SidebarContext)
@@ -458,7 +574,8 @@ const SidebarWrapper = ({ children }) => {
         }`}
         style={{
           width: displayState === 'fullscreen' ? '100vw' : sidebarWidth + 'px',
-          maxWidth: '100vw',
+          maxWidth:
+            displayState === 'fullscreen' ? '100vw' : 'calc(100vw - 8px)',
           minWidth: '360px',
         }}
       >

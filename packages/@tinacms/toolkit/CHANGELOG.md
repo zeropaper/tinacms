@@ -1,5 +1,366 @@
 # Change Log
 
+## 0.57.3
+
+### Patch Changes
+
+- 1dd9d01e2: Sets max height on image field to prevent it from getting too big
+- 54dd48115: Improve sync event UI
+- e650bc571: User interface for synchronization log event display
+
+## 0.57.2
+
+### Patch Changes
+
+- 0ad8075aa: Errors are now blocking modals.
+
+## 0.57.1
+
+### Patch Changes
+
+- b369d7238: Update dependencies to fix vulnerabilities in external packages.
+
+## 0.57.0
+
+### Minor Changes
+
+- 7b0dda55e: Updates to the `rich-text` component as well the shape of the `rich-text` field response from the API
+
+  - Adds support for isTitle on MDX elements
+  - Fixes issues related to nested marks
+  - Uses monaco editor for code blocks
+  - Improves styling of nested list items
+  - Improves handling of rich-text during reset
+  - No longer errors on unrecognized JSX/html, instead falls back to print `No component provided for <compnonent name>`
+  - No longer errors on markdown parsing errors, instead falls back to rendering markdown as a string, customizable via the TinaMarkdown component (invalid_markdown prop)
+  - Prepares rich-text component for raw mode - where you can edit the raw markdown directly in the Tina form. This will be available in future release.
+
+### Patch Changes
+
+- 8183b638c: ## Adds a new "Static" build option.
+
+  This new option will build tina into a static `index.html` file. This will allow someone to use tina without having react as a dependency.
+
+  ### How to update
+
+  1.  Add a `.tina/config.{js,ts,tsx,jsx}` with the default export of define config.
+
+  ```ts
+  // .tina/config.ts
+  import schema from './schema'
+
+  export default defineConfig({
+    schema: schema,
+    //.. Everything from define config in `schema.ts`
+    //.. Everything from `schema.config`
+  })
+  ```
+
+  2. Add Build config
+
+  ```
+  .tina/config.ts
+
+  export default defineConfig({
+     build: {
+       outputFolder: "admin",
+       publicFolder: "public",
+    },
+    //... other config
+  })
+  ```
+
+  3. Go to `http://localhost:3000/admin/index.html` and view the admin
+
+  - @tinacms/sharedctx@0.1.2
+
+## 0.56.37
+
+### Patch Changes
+
+- 028e10686: Adding sorting in the CMS
+
+## 0.56.36
+
+### Patch Changes
+
+- 090a5b995: fixed issue where a dot would show up in the media store directory
+
+## 0.56.35
+
+### Patch Changes
+
+- 67e291e56: Add support for ES modules
+- 7a45e4e12: Added a media sync button that adds new media to tina-cloud. This button only appears when you are not in local mode and have the new media store enable
+- ae23e9ad6: Remove unused deps from monorepo
+- 489be9cb1: docs: Update media help link in sidebar
+- Updated dependencies [67e291e56]
+  - @tinacms/sharedctx@0.1.2
+
+## 0.56.34
+
+### Patch Changes
+
+- ea9c190e8: Fix rich text field focus styles
+
+## 0.56.33
+
+### Patch Changes
+
+- 2ef5a1f33: fix scale isssue, truncate form label to filename
+- 7b77fe1b5: Add a default TinaMediaStore for repo-based media
+- 99a13024d: Enables paging for local media manager
+  - @tinacms/sharedctx@0.1.1
+
+## 0.56.32
+
+### Patch Changes
+
+- 1f7d3ca3d: Use custom wrapper class for tailwind type plugin
+- 6c17f0160: fix scale isssue, truncate form label to filename
+- cceef726e: Fix login ui issue
+  - @tinacms/sharedctx@0.1.1
+
+## 0.56.31
+
+### Patch Changes
+
+- 999f0895a: Set font family on heading elements
+
+## 0.56.30
+
+### Patch Changes
+
+- aaaa5bb09: Added pagination to the CMS
+
+## 0.56.29
+
+### Patch Changes
+
+- 58a7a00f7: Replace field meta components, fix text wrapping
+- 2cc206b1a: Improve mobile nav behaviour
+- aaadefd2d: Improve group list ui, add edit icon
+
+## 0.56.28
+
+### Patch Changes
+
+- a196198bd: Add ability to disable sidebar nav
+- 57a4a3789: Persist sidebar state across browser reload
+- ba1499029: Displays a helpful message in branch switcher when running locally
+
+## 0.56.27
+
+### Patch Changes
+
+- d4f98d0fc: Add ability to set default sidebar open state, fix overlay position
+- 7e2272442: Improve list field UI by using group list components
+
+## 0.56.26
+
+### Patch Changes
+
+- f6f56bcc0: Remove old MDX editor component
+- 59d33a74a: Fix issue where items of type "string" with list: true weren't sending the right event payload
+- 8b7ee346a: - Display label instead of name for mdx dropdown af306fa
+  - Fix issue where reset triggered chagnes to the wrong rich-text field 03f6191
+  - Fix issue where null children in a code block threw an error e454bce
+- acb38bf9f: fix overflow menu click bug with popover panel
+
+## 0.56.25
+
+### Patch Changes
+
+- e90647da3: Fix issue where popover item onMouseDown wasn't triggering
+
+## 0.56.24
+
+### Patch Changes
+
+- 41d666f9a: Styles list page overflow menu, removes unused prop
+
+## 0.56.23
+
+### Patch Changes
+
+- 6a6f137ae: # Simplify GraphQL API
+
+  ## `schema` must be supplied to the `<TinaCMS>` component
+
+  Previously the `.tina/schema.ts` was only used by the Tina CLI to generate the GraphQL API. However it's now required as a prop to `<TinaCMS>`. This allows you to provide runtime logic in the `ui` property of field definitions. See the documentation on "Extending Tina" for examples.
+
+  ## The GraphQL API has been simplified
+
+  ### `get<collection name>` is now just the collection name
+
+  ```graphql
+  # old
+  {
+    getPostDocument(relativePath: $relativePath) { ... }
+  }
+
+  # new
+  {
+    post(relativePath: $relativePath) { ... }
+  }
+  ```
+
+  ### `get<collection name>List` is now `<collection name>Connection`
+
+  The use of the term `connection` is due to our adherence the the [relay cursor spec](https://relay.dev/graphql/connections.htm). We may offer a simplified list field in a future release
+
+  ```graphql
+  # old
+  {
+    getPostList { ... }
+  }
+
+  # new
+  {
+    postConnection { ... }
+  }
+  ```
+
+  ### `getCollection` and `getCollections` are now `collection` and `collections`
+
+  ```graphql
+  # old
+  {
+    getCollection(collection: "post") {...}
+  }
+  {
+    getCollections {...}
+  }
+
+  # new
+  {
+    collection(collection: "post") {...}
+  }
+  {
+    collections {...}
+  }
+  ```
+
+  ### No more `data` property
+
+  The `data` property was previously where all field definitions could be found. This has been moved on level up:
+
+  ```graphql
+  # old
+  {
+    getPostDocument(relativePath: $relativePath) {
+      data {
+        title
+      }
+    }
+  }
+
+  # new
+  {
+    post(relativePath: $relativePath) {
+      title
+    }
+  }
+  ```
+
+  #### The type for documents no longer includes "Document" at the end
+
+  ```graphql
+  # old
+  {
+    getPostDocument(relativePath: $relativePath) {
+      data {
+        author {
+          ... on AuthorDocument {
+            data {
+              name
+            }
+          }
+        }
+      }
+    }
+  }
+
+  # new
+  {
+    post(relativePath: $relativePath) {
+      author {
+        ... on Author {
+          name
+        }
+      }
+    }
+  }
+  ```
+
+  ### Meta fields are now underscored
+
+  Aside from `id`, other metadata is now underscored:
+
+  ```graphql
+  # old
+  {
+    getPostDocument(relativePath: $relativePath) {
+      sys {
+        relativePath
+      }
+      values
+    }
+  }
+
+  # new
+  {
+    post(relativePath: $relativePath) {
+      _sys {
+        relativePath
+      }
+      _values
+    }
+  }
+  ```
+
+  ### `dataJSON` is gone
+
+  This is identical to `_values`
+
+  ### `form` is gone
+
+  `form` was used internally to generate forms for the given document, however that's now handled by providing your `schema` to `<TinaCMS>`.
+
+  ### `getDocumentList` is gone
+
+  It's no longer possible to query all documents at once, you can query for collection documents via the `collection` query:
+
+  ```graphql
+  {
+    collection {
+      documents {
+        edges {
+          node {...}
+        }
+      }
+    }
+  }
+  ```
+
+## 0.56.22
+
+### Patch Changes
+
+- bf5fe0074: Improvement of select dropdown. Make arrow icon clickable
+
+## 0.56.21
+
+### Patch Changes
+
+- d37562999: Export OverflowMenu
+
+## 0.56.20
+
+### Patch Changes
+
+- 40afac061: updated @headlessui/react
+
 ## 0.56.19
 
 ### Patch Changes

@@ -25,7 +25,7 @@ import type {
   Templateable,
   TinaCloudCollection,
 } from '../types'
-import { TinaError } from '../resolver/error'
+import { TinaGraphQLError } from '../resolver/error'
 
 export const createSchema = async ({
   schema,
@@ -34,6 +34,8 @@ export const createSchema = async ({
   schema: TinaCloudSchemaBase
   flags?: string[]
 }) => {
+  // TODO: fix types
+  // @ts-ignore
   const validSchema = await validateSchema(schema)
   const [major, minor, patch] = packageJSON.version.split('.')
   const meta = {}
@@ -135,9 +137,11 @@ export class TinaSchema {
     }
     return globalTemplate
   }
-  public getCollectionByFullPath = async (filepath: string) => {
+  public getCollectionByFullPath = (filepath: string) => {
     const collection = this.getCollections().find((collection) => {
-      return filepath.replace('\\', '/').startsWith(collection.path)
+      return filepath
+        .replace(/\\/g, '/')
+        .startsWith(collection.path.replace(/\/?$/, '/'))
     })
     if (!collection) {
       throw new Error(`Unable to find collection for file at ${filepath}`)
@@ -152,14 +156,7 @@ export class TinaSchema {
     template: Templateable
   } => {
     let template
-    const collection = this.getCollections().find((collection) => {
-      // FIXME: searching by startsWith will break for collections
-      // that only differ by their "matches" property (eg. **/*.en.md vs **/*.fr.md)
-      return filepath.replace('\\', '/').startsWith(collection.path)
-    })
-    if (!collection) {
-      throw new Error(`Unable to find collection for file at ${filepath}`)
-    }
+    const collection = this.getCollectionByFullPath(filepath)
     const templates = this.getTemplatesForCollectable(collection)
     if (templates.type === 'union') {
       if (templateName) {
@@ -208,7 +205,7 @@ export class TinaSchema {
             template.namespace[template.namespace.length - 1] === data._template
         )
         if (!template) {
-          throw new TinaError(
+          throw new TinaGraphQLError(
             `Expected to find template named '${
               data._template
             }' for collection '${lastItem(collection.namespace)}'`,

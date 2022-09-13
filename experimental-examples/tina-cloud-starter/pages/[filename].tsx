@@ -1,31 +1,41 @@
-import { staticRequest } from "tinacms";
 import { Blocks } from "../components/blocks";
-import { ExperimentalGetTinaClient } from "../.tina/__generated__/types";
+import { client } from "../.tina/__generated__/client";
+import { useTina } from "tinacms/dist/edit-state";
+import { Layout } from "../components/layout";
 
 export default function HomePage(
   props: AsyncReturnType<typeof getStaticProps>["props"]
 ) {
-  return <Blocks {...props.data.getPagesDocument.data} />;
+  const { data } = useTina({
+    query: props.query,
+    variables: props.variables,
+    data: props.data,
+  });
+  return (
+    <Layout rawData={data} data={data.global}>
+      <Blocks {...data.pages} />
+    </Layout>
+  );
 }
 
 export const getStaticProps = async ({ params }) => {
-  const client = ExperimentalGetTinaClient();
-  const tinaProps = await client.ContentQuery({
+  const tinaProps = await client.queries.ContentQuery({
     relativePath: `${params.filename}.md`,
   });
   return {
     props: {
-      ...tinaProps,
+      data: tinaProps.data,
+      query: tinaProps.query,
+      variables: tinaProps.variables,
     },
   };
 };
 
 export const getStaticPaths = async () => {
-  const client = ExperimentalGetTinaClient();
-  const pagesListData = await client.getPagesList();
+  const pagesListData = await client.queries.pagesConnection();
   return {
-    paths: pagesListData.data.getPagesList.edges.map((page) => ({
-      params: { filename: page.node.sys.filename },
+    paths: pagesListData.data.pagesConnection.edges.map((page) => ({
+      params: { filename: page.node._sys.filename },
     })),
     fallback: false,
   };

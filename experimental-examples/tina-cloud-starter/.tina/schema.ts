@@ -1,233 +1,142 @@
 import { defineSchema } from "tinacms";
 import type { TinaTemplate } from "tinacms";
-import { iconSchema } from "./fields";
-import { defaultFeature } from "../components/actions";
+import { contentBlockSchema } from "../components/blocks/content";
+import { featureBlockShema } from "../components/blocks/features";
+import { heroBlockSchema } from "../components/blocks/hero";
+import { testimonialBlockSchema } from "../components/blocks/testimonial";
+import { iconSchema } from "../components/icon";
 
-const featureBlockSchema: TinaTemplate = {
-  name: "features",
-  label: "Features",
+const tem = {
+  name: "test",
+  label: "test",
+  fields: [{ type: "string", name: "yo" }],
+};
+// const CreateInnerTemplate = () => {
+const InnerTemplate: TinaTemplate = {
+  label: "List Items",
+  name: "items",
   ui: {
-    previewSrc: "/blocks/features.png",
     defaultItem: {
-      items: [defaultFeature, defaultFeature, defaultFeature],
+      title: "Here's Another Feature",
     },
   },
   fields: [
     {
+      label: "Page Blocks",
+      name: "nestedBlockc",
       type: "object",
-      label: "Feature Items",
-      name: "items",
       list: true,
       ui: {
-        defaultItem: {
-          ...defaultFeature,
-        },
+        visualSelector: true,
       },
       fields: [
-        iconSchema,
         {
-          type: "string",
-          label: "Title",
+          label: "title",
           name: "title",
-        },
-        {
           type: "string",
-          label: "Text",
-          name: "text",
         },
       ],
     },
-    {
-      type: "string",
-      label: "Color",
-      name: "color",
-      options: [
-        { label: "Default", value: "default" },
-        { label: "Tint", value: "tint" },
-        { label: "Primary", value: "primary" },
-      ],
-    },
   ],
 };
+// return InnerTemplate;
+// };
 
-const contentBlockSchema: TinaTemplate = {
-  name: "content",
-  label: "Content",
-  ui: {
-    previewSrc: "/blocks/content.png",
-    defaultItem: {
-      body: "Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Donec odio. Quisque volutpat mattis eros. Nullam malesuada erat ut turpis. Suspendisse urna nibh, viverra non, semper suscipit, posuere a, pede.",
-    },
-  },
+const BlocksTemplate: TinaTemplate = {
+  label: "Page Blocks",
+  name: "nestedBlocks",
   fields: [
     {
-      type: "string",
-      ui: {
-        component: "textarea",
-      },
-      label: "Body",
-      name: "body",
-    },
-    {
-      type: "string",
-      label: "Color",
-      name: "color",
-      options: [
-        { label: "Default", value: "default" },
-        { label: "Tint", value: "tint" },
-        { label: "Primary", value: "primary" },
-      ],
-    },
-  ],
-};
-
-const testimonialBlockSchema: TinaTemplate = {
-  name: "testimonial",
-  label: "Testimonial",
-  ui: {
-    previewSrc: "/blocks/testimonial.png",
-    defaultItem: {
-      quote:
-        "There are only two hard things in Computer Science: cache invalidation and naming things.",
-      author: "Phil Karlton",
-      color: "primary",
-    },
-  },
-  fields: [
-    {
-      type: "string",
-      ui: {
-        component: "textarea",
-      },
-      label: "Quote",
-      name: "quote",
-    },
-    {
-      type: "string",
-      label: "Author",
-      name: "author",
-    },
-    {
-      type: "string",
-      label: "Color",
-      name: "color",
-      options: [
-        { label: "Default", value: "default" },
-        { label: "Tint", value: "tint" },
-        { label: "Primary", value: "primary" },
-      ],
-    },
-  ],
-};
-
-const heroBlockSchema: TinaTemplate = {
-  name: "hero",
-  label: "Hero",
-  ui: {
-    previewSrc: "/blocks/hero.png",
-    defaultItem: {
-      tagline: "Here's some text above the other text",
-      headline: "This Big Text is Totally Awesome",
-      text: "Phasellus scelerisque, libero eu finibus rutrum, risus risus accumsan libero, nec molestie urna dui a leo.",
-    },
-  },
-  fields: [
-    {
-      type: "string",
-      label: "Tagline",
-      name: "tagline",
-    },
-    {
-      type: "string",
-      label: "Headline",
-      name: "headline",
-    },
-    {
-      label: "Text",
-      name: "text",
-      type: "string",
-      ui: {
-        component: "markdown",
-      },
-    },
-    {
-      label: "Actions",
-      name: "actions",
+      label: "Page Blocks",
+      name: "nestedBlock1",
       type: "object",
       list: true,
-      ui: {
-        defaultItem: {
-          label: "Action Label",
-          type: "button",
-          icon: true,
-          link: "/",
-        },
-      },
-      fields: [
-        {
-          label: "Label",
-          name: "label",
-          type: "string",
-        },
-        {
-          label: "Type",
-          name: "type",
-          type: "string",
-          options: [
-            { label: "Button", value: "button" },
-            { label: "Link", value: "link" },
-          ],
-        },
-        {
-          label: "Icon",
-          name: "icon",
-          type: "boolean",
-        },
-        {
-          label: "Link",
-          name: "link",
-          type: "string",
-        },
-      ],
+      templates: [InnerTemplate],
     },
     {
+      label: "Page Blocks2",
+      name: "nestedBlock2",
       type: "object",
-      label: "Image",
-      name: "image",
-      fields: [
-        {
-          name: "src",
-          label: "Image Source",
-          type: "image",
-        },
-        {
-          name: "alt",
-          label: "Alt Text",
-          type: "string",
-        },
-      ],
-    },
-    {
-      type: "string",
-      label: "Color",
-      name: "color",
-      options: [
-        { label: "Default", value: "default" },
-        { label: "Tint", value: "tint" },
-        { label: "Primary", value: "primary" },
-      ],
+      list: true,
+      templates: [InnerTemplate],
     },
   ],
 };
 
-export default defineSchema({
+const schema = defineSchema({
+  // FIXME: right now this needs to be defined here
+  // and in config.ts when using static build mode.
+  // This is because for the backend we're transforming things
+  // like `config.media` to be present on `schema`, but not before
+  // passing it into TinaCMS.
+  config: {
+    // build: {
+    //   outputFolder: "tina",
+    //   publicFolder: "public",
+    // },
+    branch: "main",
+    clientId: "foobar",
+    token: "foo",
+    media: {
+      tina: {
+        publicFolder: "public",
+        mediaRoot: "",
+      },
+    },
+  },
   collections: [
     {
       label: "Blog Posts",
       name: "posts",
       path: "content/posts",
       format: "mdx",
+      ui: {
+        router: ({ document, collection }) => {
+          return `/${collection.name}/${document._sys.filename}`;
+        },
+      },
       fields: [
+        {
+          label: "3 layer nesting",
+          name: "pageBlocks3",
+          type: "object",
+          description:
+            "This also works. It's a blockList > groupList > groupList",
+          list: true,
+          templates: [BlocksTemplate],
+        },
+        {
+          type: "string",
+          label: "Title",
+          name: "title",
+          required: true,
+          isTitle: true,
+        },
+        {
+          type: "image",
+          name: "heroImg",
+          label: "Hero Image",
+        },
+        {
+          type: "rich-text",
+          label: "Excerpt",
+          name: "excerpt",
+        },
+        {
+          type: "reference",
+          label: "Author",
+          name: "author",
+          collections: ["authors"],
+        },
+        {
+          type: "datetime",
+          label: "Posted Date",
+          name: "date",
+          ui: {
+            dateFormat: "MMMM DD YYYY",
+            timeFormat: "hh:mm A",
+          },
+        },
         {
           type: "rich-text",
           label: "Body",
@@ -294,75 +203,50 @@ export default defineSchema({
                 },
               },
             },
+            {
+              name: "Shortcode1",
+              label: "Shortcode 1",
+              inline: true,
+              match: {
+                start: "{{<",
+                end: ">}}",
+              },
+              fields: [
+                {
+                  name: "text",
+                  label: "Text",
+                  type: "string",
+                  required: true,
+                  isTitle: true,
+                  ui: {
+                    component: "textarea",
+                  },
+                },
+              ],
+            },
+            {
+              name: "Shortcode2",
+              label: "Shortcode 2",
+              inline: true,
+              match: {
+                start: "{{%",
+                end: "%}}",
+              },
+              fields: [
+                {
+                  name: "text",
+                  required: true,
+                  isTitle: true,
+                  label: "Text",
+                  type: "string",
+                  ui: {
+                    component: "textarea",
+                  },
+                },
+              ],
+            },
           ],
           isBody: true,
-        },
-        {
-          type: "string",
-          label: "Title",
-          name: "title",
-          ui: {
-            validate: (val) => {},
-          },
-          // ui: {
-          //   validate: (val) => {
-          //     console.log({ val });
-          //   },
-          // },
-        },
-        {
-          type: "boolean",
-          label: "Published",
-          name: "published",
-        },
-        {
-          type: "number",
-          label: "Rating",
-          name: "rating",
-        },
-        {
-          type: "reference",
-          label: "Author",
-          name: "author",
-          collections: ["authors"],
-        },
-        {
-          type: "datetime",
-          label: "Posted Date",
-          name: "date",
-          ui: {
-            dateFormat: "MMMM DD YYYY",
-            timeFormat: "hh:mm A",
-          },
-        },
-        {
-          type: "image",
-          name: "heroImg",
-          label: "Hero Image",
-          indexed: false,
-        },
-        {
-          type: "string",
-          label: "Excerpt",
-          ui: {
-            component: "textarea",
-          },
-          name: "excerpt",
-        },
-      ],
-      indexes: [
-        {
-          name: "published-by-date",
-          fields: [
-            {
-              name: "published",
-              default: "false",
-            },
-            {
-              name: "date",
-              default: "",
-            },
-          ],
         },
       ],
     },
@@ -370,6 +254,9 @@ export default defineSchema({
       label: "Global",
       name: "global",
       path: "content/global",
+      ui: {
+        global: true,
+      },
       format: "json",
       fields: [
         {
@@ -392,11 +279,7 @@ export default defineSchema({
               label: "Nav Links",
               name: "nav",
               list: true,
-
               ui: {
-                itemProps: (item) => {
-                  return { label: item.label };
-                },
                 defaultItem: {
                   href: "home",
                   label: "Home",
@@ -565,43 +448,19 @@ export default defineSchema({
       label: "Authors",
       name: "authors",
       path: "content/authors",
+      format: "md",
       fields: [
         {
           type: "string",
           label: "Name",
           name: "name",
-          ui: {},
+          required: true,
+          isTitle: true,
         },
         {
           type: "string",
           label: "Avatar",
           name: "avatar",
-        },
-        {
-          label: "Details",
-          name: "details",
-          type: "object",
-          list: true,
-          fields: [
-            {
-              type: "reference",
-              label: "Zodiac",
-              name: "zodiac",
-              collections: ["zodiacs"],
-            },
-          ],
-        },
-      ],
-    },
-    {
-      label: "Zodiacs",
-      name: "zodiacs",
-      path: "content/zodiacs",
-      fields: [
-        {
-          type: "string",
-          label: "Name",
-          name: "name",
         },
       ],
     },
@@ -609,6 +468,17 @@ export default defineSchema({
       label: "Pages",
       name: "pages",
       path: "content/pages",
+      ui: {
+        router: ({ document }) => {
+          if (document._sys.filename === "home") {
+            return "/";
+          }
+          if (document._sys.filename === "about") {
+            return `/about`;
+          }
+          return undefined;
+        },
+      },
       fields: [
         {
           type: "object",
@@ -620,7 +490,7 @@ export default defineSchema({
           },
           templates: [
             heroBlockSchema,
-            featureBlockSchema,
+            featureBlockShema,
             contentBlockSchema,
             testimonialBlockSchema,
           ],
@@ -629,3 +499,5 @@ export default defineSchema({
     },
   ],
 });
+
+export default schema;

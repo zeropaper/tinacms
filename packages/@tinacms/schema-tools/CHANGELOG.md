@@ -1,18 +1,239 @@
 # @tinacms/schema-tools
 
+## 0.1.2
+
+### Patch Changes
+
+- 777b1e08a: add better error messages for duplicate values in zod
+
+## 0.1.1
+
+### Patch Changes
+
+- 59ff1bb10: fix: fix collection fetching when paths overlap
+- 232ae6d52: Added better checks for name field in schema
+- fd4d8c8ff: Add `router` property on collections. This replaces the need for using the RouteMapper plugin.
+
+  ```ts
+  ...
+    name: 'post',
+    path: 'posts',
+    ui: {
+      router: ({ document }) => {
+        // eg. post items can be previewed at posts/hello-world
+        return `/posts/${document._sys.filename}`;
+      },
+    },
+  ...
+  ```
+
+  Add `global` property on collections. This replaces the need for `formifyCallback` in most cases
+
+  ```ts
+  ...
+    name: 'post',
+    path: 'posts',
+    ui: {
+      global: true
+    },
+  ...
+  ```
+
+- 9e5da3103: Add router to default schema
+
+## 0.1.0
+
+### Minor Changes
+
+- 7b0dda55e: Updates to the `rich-text` component as well the shape of the `rich-text` field response from the API
+
+  - Adds support for isTitle on MDX elements
+  - Fixes issues related to nested marks
+  - Uses monaco editor for code blocks
+  - Improves styling of nested list items
+  - Improves handling of rich-text during reset
+  - No longer errors on unrecognized JSX/html, instead falls back to print `No component provided for <compnonent name>`
+  - No longer errors on markdown parsing errors, instead falls back to rendering markdown as a string, customizable via the TinaMarkdown component (invalid_markdown prop)
+  - Prepares rich-text component for raw mode - where you can edit the raw markdown directly in the Tina form. This will be available in future release.
+
+### Patch Changes
+
+- 8183b638c: ## Adds a new "Static" build option.
+
+  This new option will build tina into a static `index.html` file. This will allow someone to use tina without having react as a dependency.
+
+  ### How to update
+
+  1.  Add a `.tina/config.{js,ts,tsx,jsx}` with the default export of define config.
+
+  ```ts
+  // .tina/config.ts
+  import schema from './schema'
+
+  export default defineConfig({
+    schema: schema,
+    //.. Everything from define config in `schema.ts`
+    //.. Everything from `schema.config`
+  })
+  ```
+
+  2. Add Build config
+
+  ```
+  .tina/config.ts
+
+  export default defineConfig({
+     build: {
+       outputFolder: "admin",
+       publicFolder: "public",
+    },
+    //... other config
+  })
+  ```
+
+  3. Go to `http://localhost:3000/admin/index.html` and view the admin
+
+## 0.0.9
+
+### Patch Changes
+
+- 870a32f18: This PR adds the new generated client, a new build command and introduces a new path of working with tina.
+
+  # How to upgrade
+
+  ## Updates to schema.ts
+
+  Instead of passing an ApiURL, now the clientId, branch and read only token (NEW) will all be configured in the schema. The local url will be used if the --local flag is passed.
+
+  This will require a change to the schema and the scripts.
+
+  ```diff
+  // .tina/schema.ts
+
+  + import { client } from "./__generated__/client";
+
+  // ...
+
+  const schema = defineSchema({
+  +    config: {
+  +        branch: "main",
+  +        clientId: "***",
+  +        token: "***",
+      },
+      collections: [
+          // ...
+      ]
+  })
+
+  // ...
+  - const branch = process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_REF
+  - const clientId = 'YOUR-CLIENT-ID-HERE'
+  - const apiURL =
+  -   process.env.NODE_ENV == 'development'
+  -     ? 'http://localhost:4001/graphql'
+  -    : `https://content.tinajs.io/content/${clientId}/github/${branch}`
+  export const tinaConfig = defineConfig({
+  +  client,
+  -  apiURl,
+    schema,
+    // ...
+  })
+
+  export default schema
+  ```
+
+  The token must be a wildcard token (`*`) and can be generated from the tina dashboard. [Read more hear](https://tina.io/docs/graphql/read-only-tokens/)
+
+  ## Updates to scripts in package.json
+
+  We now recommend separating the graphQL server into two separate processes (two separate terminals in development). The scripts should look like this:
+
+  ```json
+  {
+    "scripts": {
+      "dev": "tinacms build --local && next dev",
+      "dev-server": "tinacms server:start",
+      "build": "tinacms build && next build"
+      // ... Other Scripts
+    }
+  }
+  ```
+
+  When developing, in the first terminal run `yarn dev-server` and then `yarn dev` in the second.
+
+  The old `-c` subcommand can still be used. This will start the dev server and next dev process in the same terminal.
+
+  ```json
+  {
+    "scripts": {
+      "dev": "tinacms server:start \"tinacms build --local && next dev\"",
+      "dev-server": "tinacms server:start",
+      "build": "tinacms build && next build"
+      // ... Other Scripts
+    }
+  }
+  ```
+
+  ## Updates to generated files
+
+  We now recommend ignoring most of the generated files. This is because `client.ts` and `types.ts` will be generated in CI with `tinacms build`
+
+  To remove them from your repository, run `git rm --cached .tina/__generated__/*` and then `yarn tinacms build` to update the generated files that need to stay.
+
+- 660247b6b: Throw an error message when name contains spaces
+
+## 0.0.8
+
+### Patch Changes
+
+- b0dfc6205: Fixed bug where objects where not being copied
+
+## 0.0.7
+
+### Patch Changes
+
+- 7d87eb6b7: Add `loadCustomStore` to top schema config
+- 67e291e56: Add support for ES modules
+- ae23e9ad6: Remove unused deps from monorepo
+
+## 0.0.6
+
+### Patch Changes
+
+- fb73fb355: Renames syncFolder to a mediaRoot when configuring Repo-Based Media
+
+## 0.0.5
+
+### Patch Changes
+
+- f6cb634c2: Added an optional config key to the schema that will be used for tina cloud media store
+
+## 0.0.4
+
+### Patch Changes
+
+- 6e2ed31a2: Added `isTitle` property to the schema that allows the title to be displayed in the CMS
+
+## 0.0.3
+
+### Patch Changes
+
+- 921709a7e: Adds validation to the schema instead of only using typescript types
+
 ## 0.0.2
+
 ### Patch Changes
 
 - abf25c673: The schema can now to used on the frontend (optional for now but will be the main path moving forward).
-  
+
   ### How to migrate.
-  
+
   If you gone though the `tinacms init` process there should be a file called `.tina/components/TinaProvider`. In that file you can import the schema from `schema.ts` and add it to the TinaCMS wrapper component.
-  
+
   ```tsx
   import TinaCMS from 'tinacms'
   import schema, { tinaConfig } from '../schema.ts'
-  
+
   // Importing the TinaProvider directly into your page will cause Tina to be added to the production bundle.
   // Instead, import the tina/provider/index default export to have it dynamially imported in edit-moode
   /**
@@ -26,8 +247,9 @@
       </TinaCMS>
     )
   }
-  
+
   export default TinaProvider
   ```
+
 - 801f39f62: Update types
 - e8b0de1f7: Add `parentTypename` to fields to allow us to disambiguate between fields which have the same field names but different types. Example, an event from field name of `blocks.0.title` could belong to a `Cta` block or a `Hero` block, both of which have a `title` field.

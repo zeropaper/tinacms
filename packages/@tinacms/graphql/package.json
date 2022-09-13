@@ -1,6 +1,6 @@
 {
   "name": "@tinacms/graphql",
-  "version": "0.59.9",
+  "version": "0.63.8",
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",
   "files": [
@@ -13,40 +13,23 @@
       {
         "name": "src/index.ts",
         "target": "node",
-        "bundle": [
-          "mdast",
-          "mdast-util-from-markdown",
-          "mdast-util-mdx",
-          "mdast-util-mdx-expression",
-          "mdast-util-to-markdown",
-          "micromark-extension-mdxjs",
-          "rehype-format",
-          "rehype-stringify",
-          "remark",
-          "remark-frontmatter",
-          "remark-mdx",
-          "remark-parse",
-          "remark-rehype",
-          "remark-slate",
-          "remark-stringify",
-          "unified",
-          "unist-util-remove-position",
-          "unist-util-visit",
-          "vfile"
-        ]
+        "bundle": []
       }
     ]
   },
   "scripts": {
-    "types": "yarn tsc",
-    "build": "echo \"Run `yarn build` from the root of the repository instead\"",
+    "types": "pnpm tsc",
+    "build": "tinacms-scripts build",
     "docs": "yarn typedoc",
     "serve": "yarn nodemon dist/server.js",
-    "test": "jest"
+    "test": "jest",
+    "test-watch": "jest --watch"
   },
   "dependencies": {
     "@graphql-tools/relay-operation-optimizer": "^6.4.1",
     "@tinacms/datalayer": "workspace:*",
+    "@tinacms/schema-tools": "workspace:*",
+    "@tinacms/mdx": "workspace:*",
     "body-parser": "^1.19.0",
     "cors": "^2.8.5",
     "dataloader": "^2.0.0",
@@ -97,6 +80,7 @@
   },
   "devDependencies": {
     "@tinacms/datalayer": "workspace:*",
+    "@tinacms/schema-tools": "workspace:*",
     "@tinacms/scripts": "workspace:*",
     "@types/cors": "^2.8.7",
     "@types/estree": "^0.0.50",
@@ -117,7 +101,7 @@
     "jest-diff": "27.0.6",
     "jest-file-snapshot": "^0.5.0",
     "jest-matcher-utils": "27.0.6",
-    "nodemon": "^2.0.4",
-    "typescript": "^4.3.5"
+    "nodemon": "2.0.19",
+    "typescript": "4.3.5"
   }
 }

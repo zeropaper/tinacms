@@ -1,5 +1,545 @@
 # tina-graphql
 
+## 0.63.8
+
+### Patch Changes
+
+- 87369d34c: export functions needed for indexing
+
+## 0.63.7
+
+### Patch Changes
+
+- Updated dependencies [777b1e08a]
+  - @tinacms/schema-tools@0.1.2
+  - @tinacms/mdx@0.61.6
+
+## 0.63.6
+
+### Patch Changes
+
+- 75b9a1b56: enhancement: Don't build client on tinacms audit
+- 59ff1bb10: fix: fix collection fetching when paths overlap
+- Updated dependencies [59ff1bb10]
+- Updated dependencies [232ae6d52]
+- Updated dependencies [fd4d8c8ff]
+- Updated dependencies [9e5da3103]
+  - @tinacms/schema-tools@0.1.1
+  - @tinacms/mdx@0.61.5
+
+## 0.63.5
+
+### Patch Changes
+
+- 2b60a7bd8: Improve audit so that it doesn't throw errors during the file list process. Also adds support for `--verbose` argument during `audit`.
+- Updated dependencies [2b60a7bd8]
+  - @tinacms/mdx@0.61.4
+
+## 0.63.4
+
+### Patch Changes
+
+- Updated dependencies [1fc0e339e]
+  - @tinacms/datalayer@0.2.3
+
+## 0.63.3
+
+### Patch Changes
+
+- b369d7238: Update dependencies to fix vulnerabilities in external packages.
+- Updated dependencies [7506a46b9]
+- Updated dependencies [5fbdd05be]
+  - @tinacms/mdx@0.61.3
+
+## 0.63.2
+
+### Patch Changes
+
+- Updated dependencies [c6726c65b]
+  - @tinacms/mdx@0.61.2
+
+## 0.63.1
+
+### Patch Changes
+
+- 067c49efd: Updated generated queries to use pageInfo
+- 9ba09bd0c: Fix issue where `rich-text` fields with an empty templates array generated an invalid GraphQL filter
+- Updated dependencies [3d36a0e42]
+  - @tinacms/mdx@0.61.1
+
+## 0.63.0
+
+### Minor Changes
+
+- 7b0dda55e: Updates to the `rich-text` component as well the shape of the `rich-text` field response from the API
+
+  - Adds support for isTitle on MDX elements
+  - Fixes issues related to nested marks
+  - Uses monaco editor for code blocks
+  - Improves styling of nested list items
+  - Improves handling of rich-text during reset
+  - No longer errors on unrecognized JSX/html, instead falls back to print `No component provided for <compnonent name>`
+  - No longer errors on markdown parsing errors, instead falls back to rendering markdown as a string, customizable via the TinaMarkdown component (invalid_markdown prop)
+  - Prepares rich-text component for raw mode - where you can edit the raw markdown directly in the Tina form. This will be available in future release.
+
+### Patch Changes
+
+- Updated dependencies [7b0dda55e]
+- Updated dependencies [8183b638c]
+  - @tinacms/mdx@0.61.0
+  - @tinacms/schema-tools@0.1.0
+  - @tinacms/datalayer@0.2.2
+
+## 0.62.1
+
+### Patch Changes
+
+- 028e10686: Adding sorting in the CMS
+- e27f5cce7: Update default reference depth to 2 and give warning when a large file is produced.
+
+## 0.62.0
+
+### Minor Changes
+
+- 870a32f18: This PR adds the new generated client, a new build command and introduces a new path of working with tina.
+
+  # How to upgrade
+
+  ## Updates to schema.ts
+
+  Instead of passing an ApiURL, now the clientId, branch and read only token (NEW) will all be configured in the schema. The local url will be used if the --local flag is passed.
+
+  This will require a change to the schema and the scripts.
+
+  ```diff
+  // .tina/schema.ts
+
+  + import { client } from "./__generated__/client";
+
+  // ...
+
+  const schema = defineSchema({
+  +    config: {
+  +        branch: "main",
+  +        clientId: "***",
+  +        token: "***",
+      },
+      collections: [
+          // ...
+      ]
+  })
+
+  // ...
+  - const branch = process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_REF
+  - const clientId = 'YOUR-CLIENT-ID-HERE'
+  - const apiURL =
+  -   process.env.NODE_ENV == 'development'
+  -     ? 'http://localhost:4001/graphql'
+  -    : `https://content.tinajs.io/content/${clientId}/github/${branch}`
+  export const tinaConfig = defineConfig({
+  +  client,
+  -  apiURl,
+    schema,
+    // ...
+  })
+
+  export default schema
+  ```
+
+  The token must be a wildcard token (`*`) and can be generated from the tina dashboard. [Read more hear](https://tina.io/docs/graphql/read-only-tokens/)
+
+  ## Updates to scripts in package.json
+
+  We now recommend separating the graphQL server into two separate processes (two separate terminals in development). The scripts should look like this:
+
+  ```json
+  {
+    "scripts": {
+      "dev": "tinacms build --local && next dev",
+      "dev-server": "tinacms server:start",
+      "build": "tinacms build && next build"
+      // ... Other Scripts
+    }
+  }
+  ```
+
+  When developing, in the first terminal run `yarn dev-server` and then `yarn dev` in the second.
+
+  The old `-c` subcommand can still be used. This will start the dev server and next dev process in the same terminal.
+
+  ```json
+  {
+    "scripts": {
+      "dev": "tinacms server:start \"tinacms build --local && next dev\"",
+      "dev-server": "tinacms server:start",
+      "build": "tinacms build && next build"
+      // ... Other Scripts
+    }
+  }
+  ```
+
+  ## Updates to generated files
+
+  We now recommend ignoring most of the generated files. This is because `client.ts` and `types.ts` will be generated in CI with `tinacms build`
+
+  To remove them from your repository, run `git rm --cached .tina/__generated__/*` and then `yarn tinacms build` to update the generated files that need to stay.
+
+### Patch Changes
+
+- a7dcb8d44: Generated client now resolves references. The default depth is 5 and can be modified in the `config` section of `defineSchema`.
+
+  EX
+
+  ```ts
+  const schema = defineSchema({
+    config: {
+      client: {
+        referenceDepth: 3,
+      },
+    },
+    // ...
+  })
+  ```
+
+  To get the old behavior set referenceDepth to `1`.
+
+  ```ts
+  const schema = defineSchema({
+    config: {
+      client: {
+        referenceDepth: 1,
+      },
+    },
+    // ...
+  })
+  ```
+
+- Updated dependencies [870a32f18]
+- Updated dependencies [dcbc57c86]
+- Updated dependencies [ae06f4a96]
+- Updated dependencies [660247b6b]
+  - @tinacms/schema-tools@0.0.9
+  - @tinacms/datalayer@0.2.2
+
+## 0.61.3
+
+### Patch Changes
+
+- 0b5a8e6e7: Whitespace change to bump package
+
+## 0.61.2
+
+### Patch Changes
+
+- Updated dependencies [cf0f531a1]
+- Updated dependencies [b0dfc6205]
+  - @tinacms/datalayer@0.2.1
+  - @tinacms/schema-tools@0.0.8
+
+## 0.61.1
+
+### Patch Changes
+
+- b5b0dfd66: chore: migrate from fs.rmdir -> fs.rm
+- Updated dependencies [7d87eb6b7]
+- Updated dependencies [67e291e56]
+- Updated dependencies [ae23e9ad6]
+  - @tinacms/schema-tools@0.0.7
+
+## 0.61.0
+
+### Minor Changes
+
+- 4daf15b36: Updated matching logic to only return the correct extension.
+
+  This means if you are using any other files besides `.md` the format must be provided in the schema.
+
+  ```ts
+  // .tina/schema.ts
+
+  import { defineSchema } from 'tinacms'
+
+  const schema = defineSchema({
+    collections: [
+      {
+        name: 'page',
+        path: 'content/page',
+        label: 'Page',
+        // Need to provide the format if the file being used (default is `.md`)
+        format: 'mdx',
+        fields: [
+          //...
+        ],
+      },
+    ],
+  })
+  //...
+
+  export default schema
+  ```
+
+### Patch Changes
+
+- 2ef5a1f33: Use media config from the schema in the local media server
+- 2ef5a1f33: Uses new `schema.config` when resolving media/asset urls
+- b348f8b6b: Experimental isomorphic git bridge implementation
+- fb73fb355: Renames syncFolder to a mediaRoot when configuring Repo-Based Media
+- Updated dependencies [b348f8b6b]
+- Updated dependencies [fb73fb355]
+- Updated dependencies [4daf15b36]
+  - @tinacms/datalayer@0.2.0
+  - @tinacms/schema-tools@0.0.6
+
+## 0.60.8
+
+### Patch Changes
+
+- 3325cd226: Make @tinacms/schema-tools a regular dependency of @tinacms/graphql
+
+## 0.60.7
+
+### Patch Changes
+
+- f6cb634c2: Added an optional config key to the schema that will be used for tina cloud media store
+- b1a4290e6: Use media config from the schema in the local media server
+- 1955b8842: Uses new `schema.config` when resolving media/asset urls
+- 8b81c3cf3: Added more context to error messages to help to user debug issues
+  - @tinacms/datalayer@0.1.1
+
+## 0.60.6
+
+### Patch Changes
+
+- e2aafcd93: Add more GraphQL variables to the generated queries.
+- a20fed8b7: Resolve Cloud URLs to Relative URLs when saving TinaCloud's media
+
+  Introduces a pair of functions (inside `media-utils.ts`) for handling URLs provided by TinaCloud (`resolveMediaCloudToRelative` and `resolveMediaRelativeToCloud`).
+
+  These are used in conjuction with two pairs of functions:
+
+  - When providing data to the preview: `resolveFieldData` and `parseMDX`
+  - When saving data to the document: `buildFieldMutations` and `stringifyMDX`
+
+  I also introduced tests around `media-utils.ts` (`media-utils.test.ts`).
+
+## 0.60.5
+
+### Patch Changes
+
+- 57f09bdd7: Always use the query function when the dataLayer in enabled
+
+## 0.60.4
+
+### Patch Changes
+
+- d103b27ad: Fix issue where new collections would not be added when CLI restarts
+
+## 0.60.3
+
+### Patch Changes
+
+- 79d112d79: Update cli to accept tinaCloudMediaStore flag and add to metadata during schema compilation
+- 3f46c6706: Fixed issue where generated SDK would not work with templates
+- db9168578: Adds support for an `assetsHost` when resolving `image` fields with `useRelativeMedia`
+- 91d6e6758: Fix issues with experimentalData on windows related to path separator inconsistency and interference with the .tina/**generated** folder
+
+## 0.60.2
+
+### Patch Changes
+
+- 08cdb672a: Adds `useRelativeMedia` support to local graphql client
+- fdbfe9a16: Fixes issue where on windows documents could not be deleted localy
+- 6e2ed31a2: Added `isTitle` property to the schema that allows the title to be displayed in the CMS
+
+## 0.60.1
+
+### Patch Changes
+
+- 3b11ff6ad: Add optional indexing status callback to Database
+
+## 0.60.0
+
+### Minor Changes
+
+- 6a6f137ae: # Simplify GraphQL API
+
+  ## `schema` must be supplied to the `<TinaCMS>` component
+
+  Previously the `.tina/schema.ts` was only used by the Tina CLI to generate the GraphQL API. However it's now required as a prop to `<TinaCMS>`. This allows you to provide runtime logic in the `ui` property of field definitions. See the documentation on "Extending Tina" for examples.
+
+  ## The GraphQL API has been simplified
+
+  ### `get<collection name>` is now just the collection name
+
+  ```graphql
+  # old
+  {
+    getPostDocument(relativePath: $relativePath) { ... }
+  }
+
+  # new
+  {
+    post(relativePath: $relativePath) { ... }
+  }
+  ```
+
+  ### `get<collection name>List` is now `<collection name>Connection`
+
+  The use of the term `connection` is due to our adherence the the [relay cursor spec](https://relay.dev/graphql/connections.htm). We may offer a simplified list field in a future release
+
+  ```graphql
+  # old
+  {
+    getPostList { ... }
+  }
+
+  # new
+  {
+    postConnection { ... }
+  }
+  ```
+
+  ### `getCollection` and `getCollections` are now `collection` and `collections`
+
+  ```graphql
+  # old
+  {
+    getCollection(collection: "post") {...}
+  }
+  {
+    getCollections {...}
+  }
+
+  # new
+  {
+    collection(collection: "post") {...}
+  }
+  {
+    collections {...}
+  }
+  ```
+
+  ### No more `data` property
+
+  The `data` property was previously where all field definitions could be found. This has been moved on level up:
+
+  ```graphql
+  # old
+  {
+    getPostDocument(relativePath: $relativePath) {
+      data {
+        title
+      }
+    }
+  }
+
+  # new
+  {
+    post(relativePath: $relativePath) {
+      title
+    }
+  }
+  ```
+
+  #### The type for documents no longer includes "Document" at the end
+
+  ```graphql
+  # old
+  {
+    getPostDocument(relativePath: $relativePath) {
+      data {
+        author {
+          ... on AuthorDocument {
+            data {
+              name
+            }
+          }
+        }
+      }
+    }
+  }
+
+  # new
+  {
+    post(relativePath: $relativePath) {
+      author {
+        ... on Author {
+          name
+        }
+      }
+    }
+  }
+  ```
+
+  ### Meta fields are now underscored
+
+  Aside from `id`, other metadata is now underscored:
+
+  ```graphql
+  # old
+  {
+    getPostDocument(relativePath: $relativePath) {
+      sys {
+        relativePath
+      }
+      values
+    }
+  }
+
+  # new
+  {
+    post(relativePath: $relativePath) {
+      _sys {
+        relativePath
+      }
+      _values
+    }
+  }
+  ```
+
+  ### `dataJSON` is gone
+
+  This is identical to `_values`
+
+  ### `form` is gone
+
+  `form` was used internally to generate forms for the given document, however that's now handled by providing your `schema` to `<TinaCMS>`.
+
+  ### `getDocumentList` is gone
+
+  It's no longer possible to query all documents at once, you can query for collection documents via the `collection` query:
+
+  ```graphql
+  {
+    collection {
+      documents {
+        edges {
+          node {...}
+        }
+      }
+    }
+  }
+  ```
+
+## 0.59.11
+
+### Patch Changes
+
+- 4da32454b: Modify database to write config json files without whitespace to reduce file sizes
+- 921709a7e: Adds validation to the schema instead of only using typescript types
+- 558cc4368: Make schema init platform-aware and refactor database put requests
+- 06666d39f: Link to MDX documentation when unregistered component error occurs
+- 3e2d9e43a: Adds new GraphQL `deleteDocument` mutation and logic
+- Updated dependencies [a2906d6fe]
+- Updated dependencies [3e2d9e43a]
+  - @tinacms/datalayer@0.1.1
+
+## 0.59.10
+
+### Patch Changes
+
+- cf33bcec1: Fix issue where store.clear() was not being awaited causing an invalid state after reindex
+
 ## 0.59.9
 
 ### Patch Changes

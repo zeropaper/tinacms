@@ -1,5 +1,17 @@
 # @tinacms/auth
 
+## 0.50.4
+
+### Patch Changes
+
+- b369d7238: Update dependencies to fix vulnerabilities in external packages.
+
+## 0.50.3
+
+### Patch Changes
+
+- 67e291e56: Add support for ES modules
+
 ## 0.50.2
 
 ### Patch Changes

@@ -1,5 +1,531 @@
 # tinacms
 
+## 0.69.6
+
+### Patch Changes
+
+- Updated dependencies [777b1e08a]
+  - @tinacms/schema-tools@0.1.2
+
+## 0.69.5
+
+### Patch Changes
+
+- bf89a3720: allow boolean fields in admin collection list sort control
+- fd4d8c8ff: Add `router` property on collections. This replaces the need for using the RouteMapper plugin.
+
+  ```ts
+  ...
+    name: 'post',
+    path: 'posts',
+    ui: {
+      router: ({ document }) => {
+        // eg. post items can be previewed at posts/hello-world
+        return `/posts/${document._sys.filename}`;
+      },
+    },
+  ...
+  ```
+
+  Add `global` property on collections. This replaces the need for `formifyCallback` in most cases
+
+  ```ts
+  ...
+    name: 'post',
+    path: 'posts',
+    ui: {
+      global: true
+    },
+  ...
+  ```
+
+- e650bc571: User interface for synchronization log event display
+- Updated dependencies [59ff1bb10]
+- Updated dependencies [232ae6d52]
+- Updated dependencies [1dd9d01e2]
+- Updated dependencies [fd4d8c8ff]
+- Updated dependencies [54dd48115]
+- Updated dependencies [e650bc571]
+- Updated dependencies [9e5da3103]
+  - @tinacms/schema-tools@0.1.1
+  - @tinacms/toolkit@0.57.3
+
+## 0.69.4
+
+### Patch Changes
+
+- 5029265ed: Fixes an issue where collections which used `templates` would error on the admin list page due to the recent addition of filters. Filters will only work for collections with `fields` at this time
+- 2b60a7bd8: Fix handling of formify for template collections when `...on Document` is used
+
+## 0.69.3
+
+### Patch Changes
+
+- 0ad8075aa: Errors are now blocking modals.
+- Updated dependencies [0ad8075aa]
+  - @tinacms/toolkit@0.57.2
+
+## 0.69.2
+
+### Patch Changes
+
+- b369d7238: Update dependencies to fix vulnerabilities in external packages.
+- 541605aa8: Fix list page breaking for templates on collection
+- 2182dc2a6: Allow paths to start with numeric characters
+- Updated dependencies [b369d7238]
+  - @tinacms/toolkit@0.57.1
+
+## 0.69.1
+
+### Patch Changes
+
+- 9ea28113e: Fixes an issue where `collections` with `templates` weren't generating forms in the sidebar
+
+## 0.69.0
+
+### Minor Changes
+
+- 7b0dda55e: Updates to the `rich-text` component as well the shape of the `rich-text` field response from the API
+
+  - Adds support for isTitle on MDX elements
+  - Fixes issues related to nested marks
+  - Uses monaco editor for code blocks
+  - Improves styling of nested list items
+  - Improves handling of rich-text during reset
+  - No longer errors on unrecognized JSX/html, instead falls back to print `No component provided for <compnonent name>`
+  - No longer errors on markdown parsing errors, instead falls back to rendering markdown as a string, customizable via the TinaMarkdown component (invalid_markdown prop)
+  - Prepares rich-text component for raw mode - where you can edit the raw markdown directly in the Tina form. This will be available in future release.
+
+### Patch Changes
+
+- 8183b638c: ## Adds a new "Static" build option.
+
+  This new option will build tina into a static `index.html` file. This will allow someone to use tina without having react as a dependency.
+
+  ### How to update
+
+  1.  Add a `.tina/config.{js,ts,tsx,jsx}` with the default export of define config.
+
+  ```ts
+  // .tina/config.ts
+  import schema from './schema'
+
+  export default defineConfig({
+    schema: schema,
+    //.. Everything from define config in `schema.ts`
+    //.. Everything from `schema.config`
+  })
+  ```
+
+  2. Add Build config
+
+  ```
+  .tina/config.ts
+
+  export default defineConfig({
+     build: {
+       outputFolder: "admin",
+       publicFolder: "public",
+    },
+    //... other config
+  })
+  ```
+
+  3. Go to `http://localhost:3000/admin/index.html` and view the admin
+
+- Updated dependencies [7b0dda55e]
+- Updated dependencies [8183b638c]
+  - @tinacms/schema-tools@0.1.0
+  - @tinacms/toolkit@0.57.0
+  - @tinacms/sharedctx@0.1.2
+
+## 0.68.15
+
+### Patch Changes
+
+- 028e10686: Adding sorting in the CMS
+- Updated dependencies [028e10686]
+  - @tinacms/toolkit@0.56.37
+
+## 0.68.14
+
+### Patch Changes
+
+- 329b72e7a: fix types in createClient
+- ef94f2b59: BREAKING CHANGE: Deprecate dated defineConfig use:
+  - clientId & branch should instead be passed to defineSchema.
+  - defineConfig now needs to take in the client.
+    See tina.io for upgrade details: https://tina.io/blog/tina-v-0.69.0
+- 7334ec5be: Client now throws an error when a non 200 status code is returned.
+- Updated dependencies [870a32f18]
+- Updated dependencies [090a5b995]
+- Updated dependencies [660247b6b]
+  - @tinacms/schema-tools@0.0.9
+  - @tinacms/toolkit@0.56.36
+
+## 0.68.13
+
+### Patch Changes
+
+- b0dfc6205: Fixed bug where objects where not being copied
+- Updated dependencies [b0dfc6205]
+  - @tinacms/schema-tools@0.0.8
+
+## 0.68.12
+
+### Patch Changes
+
+- 7d87eb6b7: Add `loadCustomStore` to top schema config
+- 67e291e56: Add support for ES modules
+- f3c6b0f36: Fix an issue where changes to a field weren't reflected on the page when typing quickly
+- 7a45e4e12: Added a media sync button that adds new media to tina-cloud. This button only appears when you are not in local mode and have the new media store enable
+- Updated dependencies [7d87eb6b7]
+- Updated dependencies [67e291e56]
+- Updated dependencies [7a45e4e12]
+- Updated dependencies [ae23e9ad6]
+- Updated dependencies [489be9cb1]
+  - @tinacms/schema-tools@0.0.7
+  - @tinacms/sharedctx@0.1.2
+  - @tinacms/toolkit@0.56.35
+
+## 0.68.11
+
+### Patch Changes
+
+- 42af73648: Adds more useful error messages from internalClient
+- Updated dependencies [ea9c190e8]
+  - @tinacms/toolkit@0.56.34
+
+## 0.68.10
+
+### Patch Changes
+
+- d95b73974: Fix collection list page delete modal
+- 7b77fe1b5: Add a default TinaMediaStore for repo-based media
+- Updated dependencies [2ef5a1f33]
+- Updated dependencies [fb73fb355]
+- Updated dependencies [7b77fe1b5]
+- Updated dependencies [99a13024d]
+  - @tinacms/toolkit@0.56.33
+  - @tinacms/schema-tools@0.0.6
+  - @tinacms/sharedctx@0.1.1
+
+All notable changes to `tinacms/packages/tinacms` will be documented in this file.
+
+Note: For root tinacms changes, please refer to the [CHANGELOG.md](https://github.com/tinacms/tinacms/CHANGELOG.md) specific to root `tinacms`.
+
+## 0.68.9
+
+### Patch Changes
+
+- 1f7d3ca3d: Use custom wrapper class for tailwind type plugin
+- cceef726e: Fix login ui issue
+- Updated dependencies [1f7d3ca3d]
+- Updated dependencies [f6cb634c2]
+- Updated dependencies [6c17f0160]
+- Updated dependencies [cceef726e]
+  - @tinacms/toolkit@0.56.32
+  - @tinacms/schema-tools@0.0.5
+  - @tinacms/sharedctx@0.1.1
+
+## 0.68.8
+
+### Patch Changes
+
+- 999f0895a: Set font family on heading elements
+- 41be5e7fc: Fixes subitem links to use breadcrumbs
+- Updated dependencies [999f0895a]
+  - @tinacms/toolkit@0.56.31
+
+## 0.68.7
+
+### Patch Changes
+
+- aaaa5bb09: Added pagination to the CMS
+- e06dbb3ca: Adds `waitForDB` cmd to cli
+- Updated dependencies [aaaa5bb09]
+  - @tinacms/toolkit@0.56.30
+
+## 0.68.6
+
+### Patch Changes
+
+- 2cc206b1a: Improve mobile nav behaviour
+- 8998df207: fix: update tina client with the current branch from local storage
+- Updated dependencies [58a7a00f7]
+- Updated dependencies [2cc206b1a]
+- Updated dependencies [aaadefd2d]
+  - @tinacms/toolkit@0.56.29
+
+## 0.68.5
+
+### Patch Changes
+
+- 646cad8da: Adds support for using the generated client on the frontend
+- f857616f6: Rename sdk to queries
+- 6e2ed31a2: Added `isTitle` property to the schema that allows the title to be displayed in the CMS
+- Updated dependencies [a196198bd]
+- Updated dependencies [57a4a3789]
+- Updated dependencies [6e2ed31a2]
+- Updated dependencies [ba1499029]
+  - @tinacms/toolkit@0.56.28
+  - @tinacms/schema-tools@0.0.4
+
+## 0.68.4
+
+### Patch Changes
+
+- 7372f90ca: Adds a new client that can be used on the backend and frontend.
+- Updated dependencies [d4f98d0fc]
+- Updated dependencies [7e2272442]
+  - @tinacms/toolkit@0.56.27
+
+## 0.68.3
+
+### Patch Changes
+
+- 8b7ee346a: - Display label instead of name for mdx dropdown af306fa
+  - Fix issue where reset triggered chagnes to the wrong rich-text field 03f6191
+  - Fix issue where null children in a code block threw an error e454bce
+- Updated dependencies [f6f56bcc0]
+- Updated dependencies [59d33a74a]
+- Updated dependencies [8b7ee346a]
+- Updated dependencies [acb38bf9f]
+  - @tinacms/toolkit@0.56.26
+
+## 0.68.2
+
+### Patch Changes
+
+- Updated dependencies [e90647da3]
+  - @tinacms/toolkit@0.56.25
+
+## 0.68.1
+
+### Patch Changes
+
+- 41d666f9a: Styles list page overflow menu, removes unused prop
+- e5a1152f2: Fix issue where pages that didnt use `useTina` would get a loading spinner that hangs
+- Updated dependencies [41d666f9a]
+  - @tinacms/toolkit@0.56.24
+
+## 0.68.0
+
+### Minor Changes
+
+- 6a6f137ae: # Simplify GraphQL API
+
+  ## `schema` must be supplied to the `<TinaCMS>` component
+
+  Previously the `.tina/schema.ts` was only used by the Tina CLI to generate the GraphQL API. However it's now required as a prop to `<TinaCMS>`. This allows you to provide runtime logic in the `ui` property of field definitions. See the documentation on "Extending Tina" for examples.
+
+  ## The GraphQL API has been simplified
+
+  ### `get<collection name>` is now just the collection name
+
+  ```graphql
+  # old
+  {
+    getPostDocument(relativePath: $relativePath) { ... }
+  }
+
+  # new
+  {
+    post(relativePath: $relativePath) { ... }
+  }
+  ```
+
+  ### `get<collection name>List` is now `<collection name>Connection`
+
+  The use of the term `connection` is due to our adherence the the [relay cursor spec](https://relay.dev/graphql/connections.htm). We may offer a simplified list field in a future release
+
+  ```graphql
+  # old
+  {
+    getPostList { ... }
+  }
+
+  # new
+  {
+    postConnection { ... }
+  }
+  ```
+
+  ### `getCollection` and `getCollections` are now `collection` and `collections`
+
+  ```graphql
+  # old
+  {
+    getCollection(collection: "post") {...}
+  }
+  {
+    getCollections {...}
+  }
+
+  # new
+  {
+    collection(collection: "post") {...}
+  }
+  {
+    collections {...}
+  }
+  ```
+
+  ### No more `data` property
+
+  The `data` property was previously where all field definitions could be found. This has been moved on level up:
+
+  ```graphql
+  # old
+  {
+    getPostDocument(relativePath: $relativePath) {
+      data {
+        title
+      }
+    }
+  }
+
+  # new
+  {
+    post(relativePath: $relativePath) {
+      title
+    }
+  }
+  ```
+
+  #### The type for documents no longer includes "Document" at the end
+
+  ```graphql
+  # old
+  {
+    getPostDocument(relativePath: $relativePath) {
+      data {
+        author {
+          ... on AuthorDocument {
+            data {
+              name
+            }
+          }
+        }
+      }
+    }
+  }
+
+  # new
+  {
+    post(relativePath: $relativePath) {
+      author {
+        ... on Author {
+          name
+        }
+      }
+    }
+  }
+  ```
+
+  ### Meta fields are now underscored
+
+  Aside from `id`, other metadata is now underscored:
+
+  ```graphql
+  # old
+  {
+    getPostDocument(relativePath: $relativePath) {
+      sys {
+        relativePath
+      }
+      values
+    }
+  }
+
+  # new
+  {
+    post(relativePath: $relativePath) {
+      _sys {
+        relativePath
+      }
+      _values
+    }
+  }
+  ```
+
+  ### `dataJSON` is gone
+
+  This is identical to `_values`
+
+  ### `form` is gone
+
+  `form` was used internally to generate forms for the given document, however that's now handled by providing your `schema` to `<TinaCMS>`.
+
+  ### `getDocumentList` is gone
+
+  It's no longer possible to query all documents at once, you can query for collection documents via the `collection` query:
+
+  ```graphql
+  {
+    collection {
+      documents {
+        edges {
+          node {...}
+        }
+      }
+    }
+  }
+  ```
+
+### Patch Changes
+
+- Updated dependencies [6a6f137ae]
+  - @tinacms/toolkit@0.56.23
+
+## 0.67.4
+
+### Patch Changes
+
+- 168f6cc6e: Update delete modal header
+- 2a6060138: Fix url parsing issue when a branch name contained a `/`
+- 3af3d6787: Fix issues with finding the template for multitemplate collections
+- Updated dependencies [bf5fe0074]
+  - @tinacms/toolkit@0.56.22
+
+## 0.67.3
+
+### Patch Changes
+
+- Updated dependencies [d37562999]
+  - @tinacms/toolkit@0.56.21
+
+## 0.67.2
+
+### Patch Changes
+
+- 40afac061: updated @headlessui/react
+- Updated dependencies [40afac061]
+  - @tinacms/toolkit@0.56.20
+
+## 0.67.1
+
+### Patch Changes
+
+- 921709a7e: Adds validation to the schema instead of only using typescript types
+- 3e2d9e43a: Adds new GraphQL `deleteDocument` mutation and logic
+- Updated dependencies [921709a7e]
+  - @tinacms/schema-tools@0.0.3
+
+## 0.67.0
+
+### Minor Changes
+
+- 86651039b: Updates to the way forms are generated in contextual editing. This lays the groundwork for
+  future updates but doesn't offer new behavior yet. It does come with a small breaking change:
+
+  [BREAKING]: The `id` of forms is now the actual document `path`. Previously this was the name of the GraphQL query node (eg. `getPostDocument`).
+  If you're using the [`formifyCallback`](https://tina.io/docs/advanced/customizing-forms/#customizing-a-form) prop to create global forms, you'll probably need to update the callback to check for the appropriate id.
+
+  Eg. `formConfig.id === 'getSiteNavsDocument'` should be something like `formConfig.id === 'content/navs/mynav.md'`
+
+  If you're experiencing any issues with contextual editing, you can disable this flag for now by specifying `cms.flags.set('use-unstable-formify', false)`.
+
 ## 0.66.10
 
 ### Patch Changes

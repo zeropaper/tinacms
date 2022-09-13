@@ -1,5 +1,5 @@
 # Blueprint
-# getPostDocument
+# post
 #
 # Documents for blueprint
 # ================
@@ -10,7 +10,7 @@
 # author
 
 # Blueprint
-# getPostDocument.data.author
+# post.author
 #
 # Documents for blueprint
 # ================
@@ -21,31 +21,31 @@
 
 
 query GetBlockPageDocument {
-  getPostDocument(relativePath: "post1.mdx") {
-    data {
-      author {
-        ... on AuthorDocument {
-          data {
-            name
-          }
-          _internalSys: sys {
+  post(relativePath: "post1.mdx") {
+    author {
+      ... on Author {
+        name
+        ... on Document {
+          _internalSys: _sys {
             path
+            relativePath
             collection {
               name
             }
           }
-          form
-          values
+          _values
         }
       }
     }
-    _internalSys: sys {
-      path
-      collection {
-        name
+    ... on Document {
+      _internalSys: _sys {
+        path
+        relativePath
+        collection {
+          name
+        }
       }
+      _values
     }
-    form
-    values
   }
 }

@@ -1,5 +1,24 @@
 # create-tina-app
 
+## 0.1.8
+
+### Patch Changes
+
+- 4deaf0d54: fix: fix windows directory creation
+
+## 0.1.7
+
+### Patch Changes
+
+- b369d7238: Update dependencies to fix vulnerabilities in external packages.
+
+## 0.1.6
+
+### Patch Changes
+
+- Updated dependencies [ef450a53a]
+  - @tinacms/metrics@0.0.3
+
 ## 0.1.5
 
 ### Patch Changes

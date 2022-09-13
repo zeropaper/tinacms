@@ -30,20 +30,32 @@ import {
   FieldNode,
   InlineFragmentNode,
   OperationDefinitionNode,
+  VariableDefinitionNode,
+  ArgumentNode,
 } from 'graphql'
 import _ from 'lodash'
+import { lastItem } from '../util'
 
 const SysFieldDefinition = {
   kind: 'Field' as const,
   name: {
     kind: 'Name' as const,
-    value: 'sys',
+    value: '_sys',
   },
   arguments: [],
   directives: [],
   selectionSet: {
     kind: 'SelectionSet' as const,
     selections: [
+      // {
+      //   kind: 'Field' as const,
+      //   name: {
+      //     kind: 'Name' as const,
+      //     value: 'title',
+      //   },
+      //   arguments: [],
+      //   directives: [],
+      // },
       {
         kind: 'Field' as const,
         name: {
@@ -597,37 +609,39 @@ export const astBuilder = {
             selectionSet: {
               kind: 'SelectionSet',
               selections: [
-                SysFieldDefinition,
                 {
-                  kind: 'Field',
-                  name: {
-                    kind: 'Name',
-                    value: 'id',
+                  kind: 'InlineFragment' as const,
+                  typeCondition: {
+                    kind: 'NamedType' as const,
+                    name: {
+                      kind: 'Name' as const,
+                      value: 'Document',
+                    },
                   },
-                  arguments: [],
-                  directives: [],
-                },
-                {
-                  kind: 'Field',
-                  name: {
-                    kind: 'Name',
-                    value: 'data',
-                  },
-                  arguments: [],
                   directives: [],
                   selectionSet: {
-                    kind: 'SelectionSet',
+                    kind: 'SelectionSet' as const,
                     selections: [
+                      SysFieldDefinition,
                       {
-                        kind: 'FragmentSpread',
+                        kind: 'Field',
                         name: {
                           kind: 'Name',
-                          value: fragName,
+                          value: 'id',
                         },
+                        arguments: [],
                         directives: [],
                       },
                     ],
                   },
+                },
+                {
+                  kind: 'FragmentSpread',
+                  name: {
+                    kind: 'Name',
+                    value: fragName,
+                  },
+                  directives: [],
                 },
               ],
             },
@@ -640,10 +654,215 @@ export const astBuilder = {
   ListQueryOperationDefinition: ({
     queryName,
     fragName,
+    filterType,
+    dataLayer,
   }: {
     queryName: string
     fragName: string
+    filterType: string
+    dataLayer: boolean
   }): OperationDefinitionNode => {
+    const variableDefinitions: VariableDefinitionNode[] = [
+      {
+        kind: 'VariableDefinition',
+        variable: {
+          kind: 'Variable',
+          name: {
+            kind: 'Name',
+            value: 'before',
+          },
+        },
+        type: {
+          kind: 'NamedType',
+          name: {
+            kind: 'Name',
+            value: 'String',
+          },
+        },
+        directives: [],
+      },
+      {
+        kind: 'VariableDefinition',
+        variable: {
+          kind: 'Variable',
+          name: {
+            kind: 'Name',
+            value: 'after',
+          },
+        },
+        type: {
+          kind: 'NamedType',
+          name: {
+            kind: 'Name',
+            value: 'String',
+          },
+        },
+        directives: [],
+      },
+      {
+        kind: 'VariableDefinition',
+        variable: {
+          kind: 'Variable',
+          name: {
+            kind: 'Name',
+            value: 'first',
+          },
+        },
+        type: {
+          kind: 'NamedType',
+          name: {
+            kind: 'Name',
+            value: 'Float',
+          },
+        },
+        directives: [],
+      },
+      {
+        kind: 'VariableDefinition',
+        variable: {
+          kind: 'Variable',
+          name: {
+            kind: 'Name',
+            value: 'last',
+          },
+        },
+        type: {
+          kind: 'NamedType',
+          name: {
+            kind: 'Name',
+            value: 'Float',
+          },
+        },
+        directives: [],
+      },
+      {
+        kind: 'VariableDefinition',
+        variable: {
+          kind: 'Variable',
+          name: {
+            kind: 'Name',
+            value: 'sort',
+          },
+        },
+        type: {
+          kind: 'NamedType',
+          name: {
+            kind: 'Name',
+            value: 'String',
+          },
+        },
+        directives: [],
+      },
+    ]
+    const queryArguments: ArgumentNode[] = [
+      {
+        kind: 'Argument',
+        name: {
+          kind: 'Name',
+          value: 'before',
+        },
+        value: {
+          kind: 'Variable',
+          name: {
+            kind: 'Name',
+            value: 'before',
+          },
+        },
+      },
+      {
+        kind: 'Argument',
+        name: {
+          kind: 'Name',
+          value: 'after',
+        },
+        value: {
+          kind: 'Variable',
+          name: {
+            kind: 'Name',
+            value: 'after',
+          },
+        },
+      },
+      {
+        kind: 'Argument',
+        name: {
+          kind: 'Name',
+          value: 'first',
+        },
+        value: {
+          kind: 'Variable',
+          name: {
+            kind: 'Name',
+            value: 'first',
+          },
+        },
+      },
+      {
+        kind: 'Argument',
+        name: {
+          kind: 'Name',
+          value: 'last',
+        },
+        value: {
+          kind: 'Variable',
+          name: {
+            kind: 'Name',
+            value: 'last',
+          },
+        },
+      },
+      {
+        kind: 'Argument',
+        name: {
+          kind: 'Name',
+          value: 'sort',
+        },
+        value: {
+          kind: 'Variable',
+          name: {
+            kind: 'Name',
+            value: 'sort',
+          },
+        },
+      },
+    ]
+
+    if (dataLayer) {
+      queryArguments.push({
+        kind: 'Argument',
+        name: {
+          kind: 'Name',
+          value: 'filter',
+        },
+        value: {
+          kind: 'Variable',
+          name: {
+            kind: 'Name',
+            value: 'filter',
+          },
+        },
+      })
+
+      variableDefinitions.push({
+        kind: 'VariableDefinition',
+        variable: {
+          kind: 'Variable',
+          name: {
+            kind: 'Name',
+            value: 'filter',
+          },
+        },
+        type: {
+          kind: 'NamedType',
+          name: {
+            kind: 'Name',
+            value: filterType,
+          },
+        },
+        directives: [],
+      })
+    }
+
     return {
       kind: 'OperationDefinition',
       operation: 'query',
@@ -651,7 +870,7 @@ export const astBuilder = {
         kind: 'Name',
         value: queryName,
       },
-      variableDefinitions: [],
+      variableDefinitions,
       directives: [],
       selectionSet: {
         kind: 'SelectionSet',
@@ -662,11 +881,61 @@ export const astBuilder = {
               kind: 'Name',
               value: queryName,
             },
-            arguments: [],
+            arguments: queryArguments,
             directives: [],
             selectionSet: {
               kind: 'SelectionSet',
               selections: [
+                {
+                  kind: 'Field',
+                  name: {
+                    kind: 'Name',
+                    value: 'pageInfo',
+                  },
+                  arguments: [],
+                  directives: [],
+                  selectionSet: {
+                    kind: 'SelectionSet',
+                    selections: [
+                      {
+                        kind: 'Field',
+                        name: {
+                          kind: 'Name',
+                          value: 'hasPreviousPage',
+                        },
+                        arguments: [],
+                        directives: [],
+                      },
+                      {
+                        kind: 'Field',
+                        name: {
+                          kind: 'Name',
+                          value: 'hasNextPage',
+                        },
+                        arguments: [],
+                        directives: [],
+                      },
+                      {
+                        kind: 'Field',
+                        name: {
+                          kind: 'Name',
+                          value: 'startCursor',
+                        },
+                        arguments: [],
+                        directives: [],
+                      },
+                      {
+                        kind: 'Field',
+                        name: {
+                          kind: 'Name',
+                          value: 'endCursor',
+                        },
+                        arguments: [],
+                        directives: [],
+                      },
+                    ],
+                  },
+                },
                 {
                   kind: 'Field',
                   name: {
@@ -699,36 +968,38 @@ export const astBuilder = {
                           kind: 'SelectionSet',
                           selections: [
                             {
-                              kind: 'Field',
-                              name: {
-                                kind: 'Name',
-                                value: 'id',
+                              kind: 'InlineFragment' as const,
+                              typeCondition: {
+                                kind: 'NamedType' as const,
+                                name: {
+                                  kind: 'Name' as const,
+                                  value: 'Document',
+                                },
                               },
-                              arguments: [],
-                              directives: [],
-                            },
-                            SysFieldDefinition,
-                            {
-                              kind: 'Field',
-                              name: {
-                                kind: 'Name',
-                                value: 'data',
-                              },
-                              arguments: [],
                               directives: [],
                               selectionSet: {
-                                kind: 'SelectionSet',
+                                kind: 'SelectionSet' as const,
                                 selections: [
+                                  SysFieldDefinition,
                                   {
-                                    kind: 'FragmentSpread',
+                                    kind: 'Field',
                                     name: {
                                       kind: 'Name',
-                                      value: fragName,
+                                      value: 'id',
                                     },
+                                    arguments: [],
                                     directives: [],
                                   },
                                 ],
                               },
+                            },
+                            {
+                              kind: 'FragmentSpread',
+                              name: {
+                                kind: 'Name',
+                                value: fragName,
+                              },
+                              directives: [],
                             },
                           ],
                         },
@@ -905,16 +1176,28 @@ export const NAMER = {
     return generateNamespacedFieldName(namespace, 'Mutation')
   },
   updateName: (namespace: string[]) => {
-    return 'update' + generateNamespacedFieldName(namespace, 'Document')
+    return `update${generateNamespacedFieldName(namespace)}`
   },
   createName: (namespace: string[]) => {
-    return 'create' + generateNamespacedFieldName(namespace, 'Document')
+    return `create${generateNamespacedFieldName(namespace)}`
+  },
+  documentQueryName: () => {
+    return 'document'
+  },
+  documentConnectionQueryName: () => {
+    return 'documentConnection'
+  },
+  collectionQueryName: () => {
+    return 'collection'
+  },
+  collectionListQueryName: () => {
+    return 'collections'
   },
   queryName: (namespace: string[]) => {
-    return 'get' + generateNamespacedFieldName(namespace, 'Document')
+    return String(lastItem(namespace))
   },
   generateQueryListName: (namespace: string[]) => {
-    return 'get' + generateNamespacedFieldName(namespace, 'List')
+    return `${lastItem(namespace)}Connection`
   },
   fragmentName: (namespace: string[]) => {
     return generateNamespacedFieldName(namespace, '') + 'Parts'
@@ -923,7 +1206,7 @@ export const NAMER = {
     return generateNamespacedFieldName(namespace, 'Collection')
   },
   documentTypeName: (namespace: string[]) => {
-    return generateNamespacedFieldName(namespace, 'Document')
+    return generateNamespacedFieldName(namespace)
   },
   dataTypeName: (namespace: string[]) => {
     return generateNamespacedFieldName(namespace, '')

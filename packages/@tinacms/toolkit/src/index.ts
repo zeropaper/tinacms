@@ -27,7 +27,13 @@ export type {
   MediaListOptions,
   MediaList,
 } from './packages/core'
-export { MediaManager, MediaListError, EventBus } from './packages/core'
+export {
+  MediaManager,
+  MediaListError,
+  EventBus,
+  DummyMediaStore,
+  TinaMediaStore,
+} from './packages/core'
 export * from './packages/alerts'
 export * from './packages/styles'
 export { useScreenPlugin } from './packages/react-screens'
@@ -39,7 +45,7 @@ export type { ContentCreatorPlugin } from './packages/forms'
 export * from './packages/forms'
 export * from './packages/icons'
 export * from './packages/react-dismissible'
-export { Nav, LocalWarning } from './packages/react-sidebar'
+export { Nav, LocalWarning, SyncStatus } from './packages/react-sidebar'
 
 /**
  * Custom `tinacms` things
@@ -62,3 +68,4 @@ export { TinaUI } from './components/TinaUI'
 export type { TinaUIProps } from './components/TinaUI'
 
 export { useLocalStorage } from './hooks/use-local-storage'
+export { CursorPaginator } from './components/media/pagination'

@@ -11,21 +11,20 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import React, { useState, useMemo } from 'react'
 import { Form, FormBuilder, FormStatus } from '@tinacms/toolkit'
-import { useParams, useNavigate, Link } from 'react-router-dom'
-import { HiChevronRight } from 'react-icons/hi'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import React, { useMemo, useState } from 'react'
+import { TinaSchema, resolveForm } from '@tinacms/schema-tools'
 
-import type { TinaCMS } from '@tinacms/toolkit'
-import { LocalWarning } from '@tinacms/toolkit'
-
-import { TinaAdminApi } from '../api'
 import GetCMS from '../components/GetCMS'
-import GetDocumentFields from '../components/GetDocumentFields'
-
+import GetCollection from '../components/GetCollection'
+import { HiChevronRight } from 'react-icons/hi'
+import { LocalWarning } from '@tinacms/toolkit'
 import { PageWrapper } from '../components/Page'
+import { TinaAdminApi } from '../api'
+import type { TinaCMS } from '@tinacms/toolkit'
 import { transformDocumentIntoMutationRequestPayload } from '../../hooks/use-graphql-forms'
-import { resolveForm, TinaSchema } from '@tinacms/schema-tools'
+import { useWindowWidth } from '@react-hook/window-size'
 
 const createDocument = async (
   cms: TinaCMS,
@@ -54,8 +53,8 @@ const createDocument = async (
   if (await api.isAuthenticated()) {
     await api.createDocument(collection.name, relativePath, params)
   } else {
-    const authMessage = `[Error] CreateDocument failed: User is no longer authenticated; please login and try again.`
-    cms.alerts.error(authMessage, 30 * 1000)
+    const authMessage = `CreateDocument failed: User is no longer authenticated; please login and try again.`
+    cms.alerts.error(authMessage)
     console.error(authMessage)
     return false
   }
@@ -67,47 +66,50 @@ const CollectionCreatePage = () => {
   return (
     <GetCMS>
       {(cms: TinaCMS) => (
-        <GetDocumentFields
+        <GetCollection
           cms={cms}
           collectionName={collectionName}
-          templateName={templateName}
+          includeDocuments={false}
         >
-          {({ collection, template, fields, mutationInfo }) => (
-            <RenderForm
-              cms={cms}
-              collection={collection}
-              template={template}
-              fields={fields}
-              mutationInfo={mutationInfo}
-            />
-          )}
-        </GetDocumentFields>
+          {(collection) => {
+            const mutationInfo = {
+              includeCollection: true,
+              includeTemplate: !!collection.templates,
+            }
+
+            return (
+              <RenderForm
+                cms={cms}
+                collection={collection}
+                templateName={templateName}
+                mutationInfo={mutationInfo}
+              />
+            )
+          }}
+        </GetCollection>
       )}
     </GetCMS>
   )
 }
 
-const RenderForm = ({ cms, collection, template, fields, mutationInfo }) => {
+const RenderForm = ({ cms, collection, templateName, mutationInfo }) => {
   const navigate = useNavigate()
   const [formIsPristine, setFormIsPristine] = useState(true)
   const schema: TinaSchema | undefined = cms.api.tina.schema
-  let schemaFields = fields
 
-  if (schema) {
-    // the schema is being passed in from the frontend so we can use that
-    const schemaCollection = schema.getCollection(collection.name)
-    const template = schema.getTemplateForData({
-      collection: schemaCollection,
-      data: {},
-    })
-    const formInfo = resolveForm({
-      collection: schemaCollection,
-      basename: schemaCollection.name,
-      schema: schema,
-      template,
-    })
-    schemaFields = formInfo.fields
-  }
+  // the schema is being passed in from the frontend so we can use that
+  const schemaCollection = schema.getCollection(collection.name)
+  const template = schema.getTemplateForData({
+    collection: schemaCollection,
+    data: { _template: templateName },
+  })
+
+  const formInfo = resolveForm({
+    collection: schemaCollection,
+    basename: schemaCollection.name,
+    schema: schema,
+    template,
+  })
 
   const form = useMemo(() => {
     return new Form({
@@ -135,13 +137,13 @@ const RenderForm = ({ cms, collection, template, fields, mutationInfo }) => {
               return true
             }
 
-            const isValid = /^[_a-zA-Z][\.\-_\/a-zA-Z0-9]*$/.test(value)
+            const isValid = /^[_a-zA-Z0-9][\.\-_\/a-zA-Z0-9]*$/.test(value)
             if (value && !isValid) {
-              return 'Must begin with a-z, A-Z, or _ and contain only a-z, A-Z, 0-9, -, _, ., or /.'
+              return 'Must begin with a-z, A-Z, 0-9, or _ and contain only a-z, A-Z, 0-9, -, _, ., or /.'
             }
           },
         },
-        ...schemaFields,
+        ...(formInfo.fields as any),
       ],
       onSubmit: async (values) => {
         try {
@@ -149,21 +151,28 @@ const RenderForm = ({ cms, collection, template, fields, mutationInfo }) => {
           cms.alerts.success('Document created!')
           navigate(`/collections/${collection.name}`)
         } catch (error) {
-          cms.alerts.error(
-            `[${error.name}] CreateDocument failed: ${error.message}`,
-            30 * 1000 // 30 seconds
-          )
           console.error(error)
+
+          throw new Error(
+            `[${error.name}] CreateDocument failed: ${error.message}`
+          )
         }
       },
     })
-  }, [cms, collection, template, fields, mutationInfo])
+  }, [cms, collection, mutationInfo])
+
+  const navBreakpoint = 1000
+  const windowWidth = useWindowWidth()
+  const renderNavToggle = windowWidth < navBreakpoint + 1
+  const headerPadding = renderNavToggle ? 'px-20' : 'px-6'
 
   return (
     <PageWrapper>
       <>
         {cms?.api?.tina?.isLocalMode && <LocalWarning />}
-        <div className="py-4 px-20 border-b border-gray-200 bg-white">
+        <div
+          className={`py-4 border-b border-gray-200 bg-white ${headerPadding}`}
+        >
           <div className="max-w-form mx-auto">
             <div className="mb-2">
               <span className="block text-sm leading-tight uppercase text-gray-400 mb-1">

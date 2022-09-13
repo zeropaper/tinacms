@@ -1,5 +1,67 @@
 # tina-graphql
 
+## 0.2.3
+
+### Patch Changes
+
+- 1fc0e339e: Fix issue where if a subfolder exists in a collection that matches a document, editing that document creates null commits
+
+## 0.2.2
+
+### Patch Changes
+
+- dcbc57c86: update key generation to gracefully handle null / undefined field values by skipping indexing
+- ae06f4a96: Fixed audit cmd to use datalayer
+
+## 0.2.1
+
+### Patch Changes
+
+- cf0f531a1: limit db key values to 100 characters
+
+## 0.2.0
+
+### Minor Changes
+
+- 4daf15b36: Updated matching logic to only return the correct extension.
+
+  This means if you are using any other files besides `.md` the format must be provided in the schema.
+
+  ```ts
+  // .tina/schema.ts
+
+  import { defineSchema } from 'tinacms'
+
+  const schema = defineSchema({
+    collections: [
+      {
+        name: 'page',
+        path: 'content/page',
+        label: 'Page',
+        // Need to provide the format if the file being used (default is `.md`)
+        format: 'mdx',
+        fields: [
+          //...
+        ],
+      },
+    ],
+  })
+  //...
+
+  export default schema
+  ```
+
+### Patch Changes
+
+- b348f8b6b: Experimental isomorphic git bridge implementation
+
+## 0.1.1
+
+### Patch Changes
+
+- a2906d6fe: Fix datetime filtering to handle both indexed and non-indexed queries
+- 3e2d9e43a: Adds new GraphQL `deleteDocument` mutation and logic
+
 ## 0.1.0
 
 ### Minor Changes

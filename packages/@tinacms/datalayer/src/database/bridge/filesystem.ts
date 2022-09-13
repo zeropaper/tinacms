@@ -27,10 +27,10 @@ export class FilesystemBridge implements Bridge {
   constructor(rootPath: string) {
     this.rootPath = rootPath || ''
   }
-  public async glob(pattern: string) {
+  public async glob(pattern: string, extension: string) {
     const basePath = path.join(this.rootPath, ...pattern.split('/'))
     const items = await fg(
-      path.join(basePath, '**', '/*').replace(/\\/g, '/'),
+      path.join(basePath, '**', `/*${extension}`).replace(/\\/g, '/'),
       {
         dot: true,
       }
@@ -42,6 +42,9 @@ export class FilesystemBridge implements Bridge {
   }
   public supportsBuilding() {
     return true
+  }
+  public async delete(filepath: string) {
+    await fs.remove(path.join(this.rootPath, filepath))
   }
   public async get(filepath: string) {
     return fs.readFileSync(path.join(this.rootPath, filepath)).toString()
@@ -58,7 +61,16 @@ export class FilesystemBridge implements Bridge {
  * Same as the `FileSystemBridge` except it does not save files
  */
 export class AuditFileSystemBridge extends FilesystemBridge {
-  public async put(_filepath: string, _data: string) {
+  public async put(filepath: string, data: string) {
+    if (
+      [
+        '.tina/__generated__/_lookup.json',
+        '.tina/__generated__/_schema.json',
+        '.tina/__generated__/_graphql.json',
+      ].includes(filepath)
+    ) {
+      return super.put(filepath, data)
+    }
     return
   }
 }

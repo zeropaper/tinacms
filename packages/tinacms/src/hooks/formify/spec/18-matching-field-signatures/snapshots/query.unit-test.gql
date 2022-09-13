@@ -1,5 +1,5 @@
 # Blueprint
-# getBlockPageDocument
+# blockPage
 #
 # Documents for blueprint
 # ================
@@ -15,29 +15,29 @@
 
 
 query QueryOperation {
-  getBlockPageDocument(relativePath: "blockPage1.mdx") {
-    data {
-      blocks {
-        __typename
-        ... on BlockPageBlocksFeatureList {
-          items {
-            title
-          }
+  blockPage(relativePath: "blockPage1.mdx") {
+    blocks {
+      __typename
+      ... on BlockPageBlocksFeatureList {
+        items {
+          title
         }
-        ... on BlockPageBlocksSlideshow {
-          items {
-            title
-          }
+      }
+      ... on BlockPageBlocksSlideshow {
+        items {
+          title
         }
       }
     }
-    _internalSys: sys {
-      path
-      collection {
-        name
+    ... on Document {
+      _internalSys: _sys {
+        path
+        relativePath
+        collection {
+          name
+        }
       }
+      _values
     }
-    form
-    values
   }
 }

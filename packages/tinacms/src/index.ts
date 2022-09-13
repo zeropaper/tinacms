@@ -11,30 +11,33 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-export * from './client'
+export * from './internalClient'
 export * from './auth'
 export * from './utils'
 export * from './tina-cms'
-export {
-  useGraphqlForms,
-  useGraphqlFormsUnstable,
-} from './hooks/use-graphql-forms'
+export { useGraphqlForms } from './hooks/use-graphql-forms'
 export { useDocumentCreatorPlugin } from './hooks/use-content-creator'
 export * from '@tinacms/toolkit'
 export { TinaAdmin } from './admin'
 export { RouteMappingPlugin } from './admin/plugins/route-mapping'
 export { TinaAdminApi } from './admin/api'
 
-import { TinaCMSProvider2, TinaCMSProviderDefaultProps } from './tina-cms'
+import { TinaCMSProvider2, DocumentCreatorCallback } from './tina-cms'
+import type { TinaCMSProviderDefaultProps } from './types/cms'
 export type { TinaCMSProviderDefaultProps }
 export default TinaCMSProvider2
+import { TinaCMS } from '@tinacms/toolkit'
+import { formifyCallback } from './hooks/use-graphql-forms'
 
 import type {
   TinaCloudSchema as TinaCloudSchemaBase,
   TinaCloudCollection as TinaCloudCollectionBase,
   TinaCloudTemplateBase as TinaTemplate,
   TinaFieldBase,
+  TinaCMSConfig,
 } from '@tinacms/schema-tools'
+
+import { validateSchema } from '@tinacms/schema-tools'
 
 export type TinaCloudSchema = TinaCloudSchemaBase<false>
 // Alias to remove Cloud
@@ -46,11 +49,22 @@ export type TinaField = TinaFieldBase
 export type { TinaTemplate }
 
 export const defineSchema = (config: TinaCloudSchema) => {
+  validateSchema({ config })
   return config
 }
 
 export const defineConfig = (
   config: Omit<TinaCMSProviderDefaultProps, 'children'>
+) => {
+  return config
+}
+
+export const defineStaticConfig = (
+  config: TinaCMSConfig<
+    (cms: TinaCMS) => TinaCMS,
+    formifyCallback,
+    DocumentCreatorCallback
+  >
 ) => {
   return config
 }

@@ -1,140 +1,197 @@
 /**
-Copyright 2021 Forestry.io Holdings, Inc.
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-    http://www.apache.org/licenses/LICENSE-2.0
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+ Copyright 2021 Forestry.io Holdings, Inc.
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+ http://www.apache.org/licenses/LICENSE-2.0
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+ */
 
-import childProcess from 'child_process'
 import path from 'path'
-import { buildSchema, createDatabase } from '@tinacms/graphql'
-import {
-  FilesystemStore,
-  FilesystemBridge,
-  LevelStore,
-} from '@tinacms/datalayer'
-import { genTypes } from '../query-gen'
-import { compile, resetGeneratedFolder } from '../compile'
+import chalk from 'chalk'
 import chokidar from 'chokidar'
-import { dangerText } from '../../utils/theme'
-import { logger } from '../../logger'
+
 import { Telemetry } from '@tinacms/metrics'
-import { handleServerErrors } from './errors'
+
 import { AsyncLock } from './lock'
-const lock = new AsyncLock()
+import { dangerText } from '../../utils/theme'
+import { handleServerErrors } from './errors'
+import { logger } from '../../logger'
+import type { Bridge, Database } from '@tinacms/graphql'
+import { buildAdmin, ConfigBuilder } from '../../buildTina'
+import { TinaSchema } from '@tinacms/schema-tools'
+
+const buildLock = new AsyncLock()
+const reBuildLock = new AsyncLock()
 interface Options {
   port?: number
   command?: string
   watchFolders?: string[]
-  experimentalData?: boolean
   noWatch?: boolean
   noSDK: boolean
   noTelemetry: boolean
+  verbose?: boolean
+  dev?: boolean
+  local: boolean
 }
 
 const gqlPackageFile = require.resolve('@tinacms/graphql')
 
 export async function startServer(
-  _ctx,
-  _next,
+  ctx: {
+    builder: ConfigBuilder
+    rootPath: string
+    database: Database
+    bridge: Bridge
+    usingTs: boolean
+    // FIXME: these types live in TinaCMS
+    schema?: TinaSchema & {
+      config?: {
+        build?: { outputFolder: string; publicFolder: string }
+      }
+    }
+  },
+  next,
   {
     port = 4001,
-    command,
     noWatch,
-    experimentalData,
     noSDK,
     noTelemetry,
     watchFolders,
+    verbose,
+    dev,
   }: Options
 ) {
-  lock.disable()
+  buildLock.disable()
+  reBuildLock.disable()
 
-  const rootPath = process.cwd()
+  const rootPath = ctx.rootPath as string
   const t = new Telemetry({ disabled: Boolean(noTelemetry) })
   t.submitRecord({
     event: {
       name: 'tinacms:cli:server:start:invoke',
     },
   })
+  const bridge: Bridge = ctx.bridge
+  const database: Database = ctx.database
 
-  /**
-   * To work with Github directly, replace the Bridge and Store
-   * and ensure you've provided your access token.
-   * NOTE: when talking the the tinacms repo, you must
-   * give your personal access token access to the TinaCMS org
-   */
-  // const ghConfig = {
-  //   rootPath: 'examples/tina-cloud-starter',
-  //   accessToken: '<my-token>',
-  //   owner: 'tinacms',
-  //   repo: 'tinacms',
-  //   ref: 'add-data-store',
-  // }
-  // const bridge = new GithubBridge(ghConfig)
-  // const store = new GithubStore(ghConfig)
-
-  if (!process.env.CI && !noWatch) {
-    await resetGeneratedFolder()
-  }
-  const bridge = new FilesystemBridge(rootPath)
-  const store = experimentalData
-    ? new LevelStore(rootPath)
-    : new FilesystemStore({ rootPath })
+  // This is only false for tina-cloud media stores
   const shouldBuild = bridge.supportsBuilding()
-  const database = await createDatabase({ store, bridge })
 
-  const startSubprocess = () => {
-    if (typeof command === 'string') {
-      const commands = command.split(' ')
-      const firstCommand = commands[0]
-      const args = commands.slice(1) || []
-      const ps = childProcess.spawn(firstCommand, args, {
-        stdio: 'inherit',
-        shell: true,
-      })
-      ps.on('error', (code) => {
-        logger.error(
-          dangerText(
-            `An error has occurred in the Next.js child process. Error message below`
-          )
-        )
-        logger.error(`name: ${code.name}
-message: ${code.message}
-
-stack: ${code.stack || 'No stack was provided'}`)
-      })
-      ps.on('close', (code) => {
-        logger.info(`child process exited with code ${code}`)
-        process.exit(code)
-      })
-    }
-  }
   let ready = false
 
-  const build = async (noSDK?: boolean) => {
+  const state = {
+    server: null,
+    sockets: [],
+  }
+
+  let isReady = false
+
+  const beforeBuild = async () => {
     // Wait for the lock to be disabled
-    await lock.promise
+    await buildLock.promise
     // Enable the lock so that no two builds can happen at once
-    lock.enable()
+    buildLock.enable()
+  }
+  const afterBuild = async () => {
+    // Disable the lock so a new build can run
+    buildLock.disable()
+  }
+
+  const start = async () => {
+    // we do not want to start the server while the schema is building
+    await buildLock.promise
+
+    // hold the lock
+    buildLock.enable()
     try {
-      if (!process.env.CI && !noWatch) {
-        await resetGeneratedFolder()
-      }
-      const database = await createDatabase({ store, bridge })
-      await compile(null, null)
-      const schema = await buildSchema(rootPath, database)
-      await genTypes({ schema }, () => {}, { noSDK })
+      const s = require('./server')
+      state.server = await s.default(database)
+
+      state.server.listen(port, () => {
+        const altairUrl = `http://localhost:${port}/altair/`
+        const cmsUrl = ctx.schema?.config?.build
+          ? `[your-development-url]/${ctx.schema.config.build.outputFolder}/index.html`
+          : `[your-development-url]/admin`
+        if (verbose)
+          logger.info(`Started Filesystem GraphQL server on port: ${port}`)
+        logger.info(
+          `Visit the GraphQL playground at ${chalk.underline.blueBright(
+            altairUrl
+          )}\nor`
+        )
+        logger.info(`Enter the CMS at ${chalk.underline.blueBright(cmsUrl)} \n`)
+      })
+      state.server.on('error', function (e) {
+        if (e.code === 'EADDRINUSE') {
+          logger.error(dangerText(`Port 4001 already in use`))
+          process.exit()
+        }
+        throw e
+      })
+      state.server.on('connection', (socket) => {
+        state.sockets.push(socket)
+      })
     } catch (error) {
       throw error
     } finally {
-      // Disable the lock so a new build can run
-      lock.disable()
+      // let go of the lock
+      buildLock.disable()
+    }
+  }
+
+  const restart = async () => {
+    return new Promise((resolve, reject) => {
+      logger.info('restarting local server...')
+      delete require.cache[gqlPackageFile]
+
+      state.sockets.forEach((socket) => {
+        if (socket.destroyed === false) {
+          socket.destroy()
+        }
+      })
+      state.sockets = []
+      state.server.close(async () => {
+        logger.info('Server closed')
+        start()
+          .then((x) => resolve(x))
+          .catch((err) => reject(err))
+      })
+    })
+  }
+
+  const build = async () => {
+    try {
+      await beforeBuild()
+      const { schema, graphQLSchema, tinaSchema } = await ctx.builder.build({
+        rootPath: ctx.rootPath,
+        dev,
+        verbose,
+      })
+
+      const apiUrl = await ctx.builder.genTypedClient({
+        compiledSchema: schema,
+        local: true,
+        noSDK,
+        verbose,
+        usingTs: ctx.usingTs,
+      })
+      await ctx.database.indexContent({ graphQLSchema, tinaSchema })
+
+      await buildAdmin({
+        local: true,
+        rootPath: ctx.rootPath,
+        schema,
+        apiUrl,
+      })
+    } catch (error) {
+      throw error
+    } finally {
+      await afterBuild()
     }
   }
 
@@ -145,6 +202,7 @@ stack: ${code.stack || 'No stack was provided'}`)
         [
           ...foldersToWatch,
           `${rootPath}/.tina/**/*.{ts,gql,graphql,js,tsx,jsx}`,
+          gqlPackageFile,
         ],
         {
           ignored: [
@@ -155,13 +213,15 @@ stack: ${code.stack || 'No stack was provided'}`)
         }
       )
       .on('ready', async () => {
-        console.log('Generating Tina config')
+        if (verbose) console.log('Generating Tina config')
         try {
           if (shouldBuild) {
-            await build(noSDK)
+            await build()
           }
           ready = true
-          startSubprocess()
+          isReady = true
+          await start()
+          next()
         } catch (e) {
           handleServerErrors(e)
           // FIXME: make this a debug flag
@@ -171,10 +231,16 @@ stack: ${code.stack || 'No stack was provided'}`)
       })
       .on('all', async () => {
         if (ready) {
+          await reBuildLock.promise
+          // hold the rebuild lock
+          reBuildLock.enable()
           logger.info('Tina change detected, regenerating config')
           try {
             if (shouldBuild) {
-              await build(noSDK)
+              await build()
+            }
+            if (isReady) {
+              await restart()
             }
           } catch (e) {
             handleServerErrors(e)
@@ -184,75 +250,19 @@ stack: ${code.stack || 'No stack was provided'}`)
                 errorMessage: e.message,
               },
             })
+          } finally {
+            reBuildLock.disable()
           }
-        }
-      })
-  } else {
-    if (shouldBuild) {
-      await build(noSDK)
-    }
-  }
-
-  const state = {
-    server: null,
-    sockets: [],
-  }
-
-  let isReady = false
-
-  const start = async () => {
-    const s = require('./server')
-    state.server = await s.default(database)
-
-    state.server.listen(port, () => {
-      logger.info(`Started Filesystem GraphQL server on port: ${port}`)
-      logger.info(`Visit the playground at http://localhost:${port}/altair/`)
-    })
-    state.server.on('error', function (e) {
-      if (e.code === 'EADDRINUSE') {
-        logger.error(dangerText(`Port 4001 already in use`))
-        process.exit()
-      }
-      throw e
-    })
-    state.server.on('connection', (socket) => {
-      state.sockets.push(socket)
-    })
-  }
-
-  const restart = async () => {
-    logger.info('Detected change to gql package, restarting...')
-    delete require.cache[gqlPackageFile]
-
-    state.sockets.forEach((socket) => {
-      if (socket.destroyed === false) {
-        socket.destroy()
-      }
-    })
-    state.sockets = []
-    state.server.close(() => {
-      logger.info('Server closed')
-      start()
-    })
-  }
-
-  if (!noWatch && !process.env.CI) {
-    chokidar
-      .watch([gqlPackageFile])
-      .on('ready', async () => {
-        isReady = true
-        start()
-      })
-      .on('all', async () => {
-        if (isReady) {
-          restart()
         }
       })
   } else {
     if (process.env.CI) {
       logger.info('Detected CI environment, omitting watch commands...')
     }
-    start()
-    startSubprocess()
+    if (shouldBuild) {
+      await build()
+    }
+    await start()
+    next()
   }
 }

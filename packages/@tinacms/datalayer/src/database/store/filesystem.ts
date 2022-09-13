@@ -3,7 +3,7 @@ Copyright 2021 Forestry.io Holdings, Inc.
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
-http://www.apache.org/licenses/LICENSE-2.0
+    http://www.apache.org/licenses/LICENSE-2.0
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -27,7 +27,7 @@ export class FilesystemStore implements Store {
     this.rootPath = rootPath || ''
   }
   public async query(
-    queryOptions: StoreQueryOptions
+    _queryOptions: StoreQueryOptions
   ): Promise<StoreQueryResponse> {
     throw new Error(`Unable to perform query for Filesystem store`)
   }
@@ -49,10 +49,10 @@ export class FilesystemStore implements Store {
   public supportsIndexing() {
     return false
   }
-  public async glob(pattern: string, callback) {
+  public async glob(pattern: string, callback, extension) {
     const basePath = path.join(this.rootPath, ...pattern.split('/'))
     const itemsRaw = await fg(
-      path.join(basePath, '**', '/*').replace(/\\/g, '/'),
+      path.join(basePath, '**', `/*${extension}`).replace(/\\/g, '/'),
       {
         dot: true,
       }
@@ -77,6 +77,9 @@ export class FilesystemStore implements Store {
   }
   public async open() {}
   public async close() {}
+  public async delete(filepath) {
+    await fs.remove(path.join(this.rootPath, filepath))
+  }
 }
 
 export class AuditFilesystemStore extends FilesystemStore {

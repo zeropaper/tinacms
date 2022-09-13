@@ -12,20 +12,39 @@ limitations under the License.
 */
 
 import React, { Fragment } from 'react'
-import { BiEdit, BiPlus } from 'react-icons/bi'
+import { BiEdit, BiPlus, BiTrash } from 'react-icons/bi'
 import {
   useParams,
   Link,
   useNavigate,
   NavigateFunction,
+  useLocation,
 } from 'react-router-dom'
 import { Menu, Transition } from '@headlessui/react'
-import { TinaCMS } from '@tinacms/toolkit'
+import {
+  Button,
+  Modal,
+  ModalActions,
+  ModalBody,
+  ModalHeader,
+  PopupModal,
+  TinaCMS,
+  OverflowMenu,
+  Select,
+} from '@tinacms/toolkit'
 import type { Collection, Template, DocumentSys } from '../types'
 import GetCMS from '../components/GetCMS'
 import GetCollection from '../components/GetCollection'
 import { RouteMappingPlugin } from '../plugins/route-mapping'
 import { PageWrapper, PageHeader, PageBody } from '../components/Page'
+import { TinaAdminApi } from '../api'
+import { useState } from 'react'
+import { CursorPaginator } from '@tinacms/toolkit'
+import { useEffect } from 'react'
+import type { TinaCloudCollection } from '@tinacms/schema-tools'
+
+const LOCAL_STORAGE_KEY = 'tinacms.admin.collection.list.page'
+const isSSR = typeof window === 'undefined'
 
 const TemplateMenu = ({ templates }: { templates: Template[] }) => {
   return (
@@ -75,7 +94,10 @@ const TemplateMenu = ({ templates }: { templates: Template[] }) => {
 const handleNavigate = (
   navigate: NavigateFunction,
   cms: TinaCMS,
+  // FIXME: `Collection` is deceiving because it's just the value we get back from the API request
   collection: Collection,
+  // The actual Collection definition
+  collectionDefinition: TinaCloudCollection<true>,
   document: DocumentSys
 ) => {
   /**
@@ -83,11 +105,17 @@ const handleNavigate = (
    */
   const plugins = cms.plugins.all<RouteMappingPlugin>('tina-admin')
   const routeMapping = plugins.find(({ name }) => name === 'route-mapping')
+  const tinaPreview = cms.flags.get('tina-preview') || false
 
   /**
    * Determine if the document has a route mapped
    */
-  const routeOverride = routeMapping
+  const routeOverride = collectionDefinition.ui?.router
+    ? collectionDefinition.ui?.router({
+        document,
+        collection: collectionDefinition,
+      })
+    : routeMapping
     ? routeMapping.mapper(collection, document)
     : undefined
 
@@ -95,16 +123,50 @@ const handleNavigate = (
    * Redirect the browser if 'yes', else navigate react-router.
    */
   if (routeOverride) {
-    window.location.href = routeOverride
+    tinaPreview
+      ? navigate(`/preview?iframe-url=${encodeURIComponent(routeOverride)}`)
+      : (window.location.href = routeOverride)
     return null
   } else {
-    navigate(document.sys.breadcrumbs.join('/'))
+    navigate(document._sys.breadcrumbs.join('/'))
   }
 }
 
 const CollectionListPage = () => {
   const navigate = useNavigate()
   const { collectionName } = useParams()
+  const [open, setOpen] = React.useState(false)
+  const [vars, setVars] = React.useState({
+    collection: collectionName,
+    relativePath: '',
+  })
+  const [endCursor, setEndCursor] = useState('')
+  const [prevCursors, setPrevCursors] = useState([])
+  const [sortKey, setSortKey] = useState(
+    // set sort key to cached value if it exists
+    isSSR
+      ? ''
+      : window.localStorage.getItem(`${LOCAL_STORAGE_KEY}.${collectionName}`) ||
+          JSON.stringify({
+            order: 'asc',
+            name: '',
+          })
+  )
+  const [sortOrder, setSortOrder] = useState('asc' as 'asc' | 'desc')
+  const loc = useLocation()
+  useEffect(() => {
+    // set sort key to cached value on route change
+    setSortKey(
+      window.localStorage.getItem(`${LOCAL_STORAGE_KEY}.${collectionName}`) ||
+        JSON.stringify({
+          order: 'asc',
+          name: '',
+        })
+    )
+    // reset state when the route is changed
+    setEndCursor('')
+    setPrevCursors([])
+  }, [loc])
 
   return (
     <GetCMS>
@@ -114,21 +176,116 @@ const CollectionListPage = () => {
             cms={cms}
             collectionName={collectionName}
             includeDocuments
+            startCursor={endCursor}
+            sortKey={sortKey}
           >
-            {(collection: Collection) => {
+            {(
+              collection: Collection,
+              _loading,
+              reFetchCollection,
+              collectionExtra: TinaCloudCollection<true>
+            ) => {
               const totalCount = collection.documents.totalCount
               const documents = collection.documents.edges
+              const admin: TinaAdminApi = cms.api.admin
+              const pageInfo = collection.documents.pageInfo
+              const fields = collectionExtra.fields?.filter((x) =>
+                // only allow sortable fields
+                ['string', 'number', 'datetime', 'boolean'].includes(x.type)
+              )
+              const collectionDefinition = cms.api.tina.schema.getCollection(
+                collection.name
+              )
 
               return (
                 <PageWrapper>
                   <>
+                    {open && (
+                      <DeleteModal
+                        filename={vars.relativePath}
+                        deleteFunc={async () => {
+                          try {
+                            await admin.deleteDocument(vars)
+                            cms.alerts.info('Document was successfully deleted')
+                            reFetchCollection()
+                          } catch (error) {
+                            cms.alerts.warn(
+                              'Document was not deleted, ask a developer for help or check the console for an error message'
+                            )
+                            console.error(error)
+                            throw error
+                          }
+                        }}
+                        close={() => setOpen(false)}
+                      />
+                    )}
+
                     <PageHeader isLocalMode={cms?.api?.tina?.isLocalMode}>
                       <>
-                        <h3 className="text-2xl text-gray-700">
-                          {collection.label
-                            ? collection.label
-                            : collection.name}
-                        </h3>
+                        <div className="flex flex-col gap-4">
+                          <h3 className="font-sans text-2xl text-gray-700">
+                            {collection.label
+                              ? collection.label
+                              : collection.name}
+                          </h3>
+
+                          {fields?.length > 0 && (
+                            <div className="flex gap-2 items-center">
+                              <label
+                                htmlFor="sort"
+                                className="block font-sans text-xs font-semibold text-gray-500 whitespace-normal"
+                              >
+                                Sort by
+                              </label>
+                              <Select
+                                name="sort"
+                                options={[
+                                  {
+                                    label: 'Default',
+                                    value: JSON.stringify({
+                                      order: 'asc',
+                                      name: '',
+                                    }),
+                                  },
+                                  ...fields
+                                    .map((x) => [
+                                      {
+                                        label: x.label + ' (Ascending)',
+                                        value: JSON.stringify({
+                                          name: x.name,
+                                          order: 'asc',
+                                        }),
+                                      },
+                                      {
+                                        label: x.label + ' (Descending)',
+                                        value: JSON.stringify({
+                                          name: x.name,
+                                          order: 'desc',
+                                        }),
+                                      },
+                                    ])
+                                    .flat(),
+                                ]}
+                                input={{
+                                  id: 'sort',
+                                  name: 'sort',
+                                  value: sortKey,
+                                  onChange: (e) => {
+                                    const val = JSON.parse(e.target.value)
+                                    setEndCursor('')
+                                    setPrevCursors([])
+                                    window?.localStorage.setItem(
+                                      `${LOCAL_STORAGE_KEY}.${collectionName}`,
+                                      e.target.value
+                                    )
+                                    setSortKey(e.target.value)
+                                    setSortOrder(val.order)
+                                  },
+                                }}
+                              />
+                            </div>
+                          )}
+                        </div>
                         {!collection.templates && (
                           <Link
                             to={`new`}
@@ -149,13 +306,17 @@ const CollectionListPage = () => {
                           <table className="table-auto shadow bg-white border-b border-gray-200 w-full max-w-full rounded-lg">
                             <tbody className="divide-y divide-gray-150">
                               {documents.map((document) => {
-                                const subfolders = document.node.sys.breadcrumbs
-                                  .slice(0, -1)
-                                  .join('/')
+                                const hasTitle = Boolean(
+                                  document.node._sys.title
+                                )
+                                const subfolders =
+                                  document.node._sys.breadcrumbs
+                                    .slice(0, -1)
+                                    .join('/')
 
                                 return (
                                   <tr
-                                    key={`document-${document.node.sys.relativePath}`}
+                                    key={`document-${document.node._sys.relativePath}`}
                                     className=""
                                   >
                                     <td className="px-6 py-2 whitespace-nowrap">
@@ -166,6 +327,7 @@ const CollectionListPage = () => {
                                             navigate,
                                             cms,
                                             collection,
+                                            collectionDefinition,
                                             document.node
                                           )
                                         }}
@@ -173,7 +335,7 @@ const CollectionListPage = () => {
                                         <BiEdit className="inline-block h-6 w-auto opacity-70" />
                                         <span>
                                           <span className="block text-xs text-gray-400 mb-1 uppercase">
-                                            Filename
+                                            {hasTitle ? 'Title' : 'Filename'}
                                           </span>
                                           <span className="h-5 leading-5 block whitespace-nowrap">
                                             {subfolders && (
@@ -182,18 +344,30 @@ const CollectionListPage = () => {
                                               </span>
                                             )}
                                             <span>
-                                              {document.node.sys.filename}
+                                              {hasTitle
+                                                ? document.node._sys?.title
+                                                : document.node._sys.filename}
                                             </span>
                                           </span>
                                         </span>
                                       </a>
                                     </td>
+                                    {hasTitle && (
+                                      <td className="px-6 py-4 whitespace-nowrap">
+                                        <span className="block text-xs text-gray-400 mb-1 uppercase">
+                                          Filename
+                                        </span>
+                                        <span className="h-5 leading-5 block text-sm font-medium text-gray-900">
+                                          {document.node._sys.filename}
+                                        </span>
+                                      </td>
+                                    )}
                                     <td className="px-6 py-4 whitespace-nowrap">
                                       <span className="block text-xs text-gray-400 mb-1 uppercase">
                                         Extension
                                       </span>
                                       <span className="h-5 leading-5 block text-sm font-medium text-gray-900">
-                                        {document.node.sys.extension}
+                                        {document.node._sys.extension}
                                       </span>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
@@ -201,8 +375,48 @@ const CollectionListPage = () => {
                                         Template
                                       </span>
                                       <span className="h-5 leading-5 block text-sm font-medium text-gray-900">
-                                        {document.node.sys.template}
+                                        {document.node._sys.template}
                                       </span>
+                                    </td>
+                                    <td className="w-0">
+                                      <OverflowMenu
+                                        toolbarItems={[
+                                          {
+                                            name: 'edit',
+                                            label: 'Edit in Admin',
+                                            Icon: <BiEdit size="1.3rem" />,
+                                            onMouseDown: () => {
+                                              navigate(
+                                                `${document.node._sys.breadcrumbs.join(
+                                                  '/'
+                                                )}`,
+                                                { replace: true }
+                                              )
+                                            },
+                                          },
+                                          {
+                                            name: 'delete',
+                                            label: 'Delete',
+                                            Icon: (
+                                              <BiTrash
+                                                size="1.3rem"
+                                                className="text-red-500"
+                                              />
+                                            ),
+                                            onMouseDown: () => {
+                                              setVars({
+                                                collection: collectionName,
+                                                relativePath:
+                                                  document.node._sys.breadcrumbs.join(
+                                                    '/'
+                                                  ) +
+                                                  document.node._sys.extension,
+                                              })
+                                              setOpen(true)
+                                            },
+                                          },
+                                        ]}
+                                      />
                                     </td>
                                   </tr>
                                 )
@@ -210,6 +424,30 @@ const CollectionListPage = () => {
                             </tbody>
                           </table>
                         )}
+                        <div className="pt-3">
+                          <CursorPaginator
+                            variant="white"
+                            hasNext={
+                              sortOrder === 'asc'
+                                ? pageInfo?.hasNextPage
+                                : pageInfo.hasPreviousPage
+                            }
+                            navigateNext={() => {
+                              const newState = [...prevCursors, endCursor]
+                              setPrevCursors(newState)
+                              setEndCursor(pageInfo?.endCursor)
+                            }}
+                            hasPrev={prevCursors.length > 0}
+                            navigatePrev={() => {
+                              const prev = prevCursors[prevCursors.length - 1]
+                              if (typeof prev === 'string') {
+                                const newState = prevCursors.slice(0, -1)
+                                setPrevCursors(newState)
+                                setEndCursor(prev)
+                              }
+                            }}
+                          />
+                        </div>
                       </div>
                     </PageBody>
                   </>
@@ -222,5 +460,37 @@ const CollectionListPage = () => {
     </GetCMS>
   )
 }
+interface ResetModalProps {
+  close(): void
+  deleteFunc(): void
+  filename: string
+}
 
+const DeleteModal = ({ close, deleteFunc, filename }: ResetModalProps) => {
+  return (
+    <Modal>
+      <PopupModal>
+        <ModalHeader close={close}>Delete {filename}</ModalHeader>
+        <ModalBody padded={true}>
+          <p>{`Are you sure you want to delete ${filename}?`}</p>
+        </ModalBody>
+        <ModalActions>
+          <Button style={{ flexGrow: 2 }} onClick={close}>
+            Cancel
+          </Button>
+          <Button
+            style={{ flexGrow: 3 }}
+            variant="danger"
+            onClick={async () => {
+              await deleteFunc()
+              close()
+            }}
+          >
+            Delete
+          </Button>
+        </ModalActions>
+      </PopupModal>
+    </Modal>
+  )
+}
 export default CollectionListPage

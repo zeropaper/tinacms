@@ -27,19 +27,21 @@ import type { Builder } from './builder'
 import type { TinaSchema } from './schema'
 import { Database } from './database'
 
-// @ts-ignore: FIXME: check that cloud schema is what it says it is
-export const indexDB = async ({
+export const buildDotTinaFiles = async ({
   database,
   config,
+  flags = [],
   buildSDK = true,
 }: {
   database: Database
   config: TinaSchema['config']
+  flags?: string[]
   buildSDK?: boolean
 }) => {
-  const flags = []
   if (database.store.supportsIndexing()) {
-    flags.push('experimentalData')
+    if (flags.indexOf('experimentalData') === -1) {
+      flags.push('experimentalData')
+    }
   }
   const tinaSchema = await createSchema({ schema: config, flags })
   const builder = await createBuilder({
@@ -55,11 +57,11 @@ export const indexDB = async ({
       await database.bridge.get('.tina/__generated__/_graphql.json')
     )
   }
-  await database.indexContent({ graphQLSchema, tinaSchema })
   if (buildSDK) {
     await _buildFragments(builder, tinaSchema, database.bridge.rootPath)
     await _buildQueries(builder, tinaSchema, database.bridge.rootPath)
   }
+  return { graphQLSchema, tinaSchema }
 }
 
 const _buildFragments = async (
@@ -90,7 +92,27 @@ const _buildFragments = async (
   // TODO: These should possibly be outputted somewhere else?
   const fragPath = path.join(rootPath, '.tina', '__generated__')
 
-  await fs.outputFileSync(path.join(fragPath, 'frags.gql'), print(fragDoc))
+  await fs.outputFile(path.join(fragPath, 'frags.gql'), print(fragDoc))
+  // is the file bigger then 100kb?
+  if (
+    (await (await fs.stat(path.join(fragPath, 'frags.gql'))).size) >
+    // convert to 100 kb to bytes
+    100 * 1024
+  ) {
+    console.warn(
+      'Warning: frags.gql is very large (>100kb). Consider setting the reference depth to 1 or 0. See code snippet below.'
+    )
+    console.log(
+      `const schema = defineSchema({
+        config: {
+            client: {
+                referenceDepth: 1,
+            },
+        }
+        // ...
+    })`
+    )
+  }
   //   await fs.outputFileSync(
   //     path.join(fragPath, 'frags.json'),
   //     JSON.stringify(fragDoc, null, 2)
@@ -110,6 +132,8 @@ const _buildQueries = async (
     const queryName = NAMER.queryName(collection.namespace)
     const queryListName = NAMER.generateQueryListName(collection.namespace)
 
+    const queryFilterTypeName = NAMER.dataFilterTypeName(collection.namespace)
+
     const fragName = NAMER.fragmentName(collection.namespace)
 
     operationsDefinitions.push(
@@ -120,6 +144,11 @@ const _buildQueries = async (
       astBuilder.ListQueryOperationDefinition({
         fragName,
         queryName: queryListName,
+        filterType: queryFilterTypeName,
+        // look for flag to see if the data layer is enabled
+        dataLayer: Boolean(
+          tinaSchema.config?.meta?.flags?.find((x) => x === 'experimentalData')
+        ),
       })
     )
   })
@@ -135,7 +164,7 @@ const _buildQueries = async (
 
   const fragPath = path.join(rootPath, '.tina', '__generated__')
 
-  await fs.outputFileSync(path.join(fragPath, 'queries.gql'), print(queryDoc))
+  await fs.outputFile(path.join(fragPath, 'queries.gql'), print(queryDoc))
   // We dont this them for now
   // await fs.outputFileSync(
   //   path.join(fragPath, 'queries.json'),
@@ -167,7 +196,6 @@ const _buildSchema = async (builder: Builder, tinaSchema: TinaSchema) => {
       type: astBuilder.TYPES.String,
     })
   )
-
   /**
    * One-off collection queries
    */
@@ -191,12 +219,11 @@ const _buildSchema = async (builder: Builder, tinaSchema: TinaSchema) => {
     await builder.buildUpdateCollectionDocumentMutation(collections)
   )
   mutationTypeDefinitionFields.push(
+    await builder.buildDeleteCollectionDocumentMutation(collections)
+  )
+  mutationTypeDefinitionFields.push(
     await builder.buildCreateCollectionDocumentMutation(collections)
   )
-  queryTypeDefinitionFields.push(
-    await builder.multiCollectionDocumentList(collections)
-  )
-  queryTypeDefinitionFields.push(await builder.multiCollectionDocumentFields())
 
   /**
    * Collection queries/mutations/fragments

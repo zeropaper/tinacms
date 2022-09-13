@@ -13,6 +13,7 @@ limitations under the License.
 
 import { logger } from '../../../logger'
 import { dangerText } from '../../../utils/theme'
+import { handleFetchErrorError, TinaFetchError } from '@tinacms/graphql'
 
 export class BuildSchemaError extends Error {
   constructor(message) {
@@ -29,18 +30,26 @@ export class ExecuteSchemaError extends Error {
 }
 
 export const handleServerErrors = (e: Error) => {
-  if (e instanceof BuildSchemaError) {
+  if (e.name === 'BuildSchemaError') {
     logger.error(`${dangerText(
       'ERROR: your schema was not successfully built: see https://tina.io/docs/errors/esbuild-error/ for more details'
     )}
   Error Message Below
   ${e}`)
-  } else if (e instanceof ExecuteSchemaError) {
+  } else if (e.name === 'ExecuteSchemaError') {
     logger.error(`${dangerText(
       'ERROR: your schema was not successfully executed: see https://tina.io/docs/errors/esbuild-error/ for more details'
     )}
   Error Message Below
   ${e}`)
+  } else if (e.name === 'TinaSchemaValidationError') {
+    logger.error(`${dangerText(
+      'ERROR: your schema was not successfully validated: see https://tina.io/docs/schema/ for instructions on how to setup a schema'
+    )}
+  Error Message Below
+  ${e}`)
+  } else if (e instanceof TinaFetchError) {
+    handleFetchErrorError(e, true)
   } else {
     logger.info(
       dangerText(

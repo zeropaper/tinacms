@@ -44,7 +44,7 @@ export const useDocumentCreatorPlugin = (args?: DocumentCreatorArgs) => {
       const res = await cms.api.tina.request(
         (gql) => gql`
           {
-            getCollections {
+            collections {
               label
               slug
               format
@@ -59,7 +59,7 @@ export const useDocumentCreatorPlugin = (args?: DocumentCreatorArgs) => {
        * Build Collection Options
        */
       const allCollectionOptions: { label: string; value: string }[] = []
-      res.getCollections.forEach((collection) => {
+      res.collections.forEach((collection) => {
         const value = collection.slug
         const label = `${collection.label}`
         allCollectionOptions.push({ value, label })
@@ -91,7 +91,7 @@ export const useDocumentCreatorPlugin = (args?: DocumentCreatorArgs) => {
       ]
 
       if (values.collection) {
-        const filteredCollection = res.getCollections.find(
+        const filteredCollection = res.collections.find(
           (c) => c.slug === values.collection
         )
         filteredCollection?.templates?.forEach((template) => {
@@ -106,7 +106,7 @@ export const useDocumentCreatorPlugin = (args?: DocumentCreatorArgs) => {
         new ContentCreatorPlugin({
           label: 'Add Document',
           onNewDocument: args && args.onNewDocument,
-          collections: res.getCollections,
+          collections: res.collections,
           onChange: async ({ values }) => {
             setValues(values)
           },
@@ -159,9 +159,9 @@ export const useDocumentCreatorPlugin = (args?: DocumentCreatorArgs) => {
                  * https://github.com/tinacms/tina-graphql-gateway/blob/682e2ed54c51520d1a87fac2887950839892f465/packages/tina-graphql-gateway-cli/src/cmds/compile/index.ts#L296
                  * */
 
-                const isValid = /^[_a-zA-Z][-,_a-zA-Z0-9]*$/.test(value)
+                const isValid = /^[_a-zA-Z0-9][\-_a-zA-Z0-9]*$/.test(value)
                 if (value && !isValid) {
-                  return 'Must begin with a-z, A-Z, or _ and contain only a-z, A-Z, 0-9, - or _'
+                  return 'Must begin with a-z, A-Z, 0-9, or _ and contain only a-z, A-Z, 0-9, - or _'
                 }
               },
             },

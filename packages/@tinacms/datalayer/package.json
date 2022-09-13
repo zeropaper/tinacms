@@ -1,6 +1,6 @@
 {
   "name": "@tinacms/datalayer",
-  "version": "0.1.0",
+  "version": "0.2.3",
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",
   "files": [
@@ -18,8 +18,8 @@
     ]
   },
   "scripts": {
-    "types": "yarn tsc",
-    "build": "echo \"Run `yarn build` from the root of the repository instead\"",
+    "types": "pnpm tsc",
+    "build": "tinacms-scripts build",
     "test": "jest --passWithNoTests"
   },
   "dependencies": {
@@ -29,8 +29,10 @@
     "encoding-down": "^7.1.0",
     "fast-glob": "^3.2.5",
     "fs-extra": "^9.0.1",
+    "glob-parent": "^6.0.2",
     "graphql": "^15.3.0",
     "gray-matter": "^4.0.2",
+    "isomorphic-git": "^1.10.3",
     "js-yaml": "^3.14.0",
     "jsonpath-plus": "^6.0.1",
     "level": "^7.0.1",
@@ -65,6 +67,6 @@
     "jest-diff": "27.0.6",
     "jest-file-snapshot": "^0.5.0",
     "jest-matcher-utils": "27.0.6",
-    "typescript": "^4.3.5"
+    "typescript": "4.3.5"
   }
 }

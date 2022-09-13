@@ -1,5 +1,5 @@
 # Blueprint
-# getDocument
+# document
 #
 # Documents for blueprint
 # ================
@@ -11,19 +11,19 @@
 
 
 query GetBlockPageDocument {
-  getDocument(collection: "author", relativePath: "author1.mdx") {
-    ... on AuthorDocument {
-      data {
-        name
-      }
-      _internalSys: sys {
-        path
-        collection {
-          name
+  document(collection: "author", relativePath: "author1.mdx") {
+    ... on Author {
+      name
+      ... on Document {
+        _internalSys: _sys {
+          path
+          relativePath
+          collection {
+            name
+          }
         }
+        _values
       }
-      form
-      values
     }
   }
 }

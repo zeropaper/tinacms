@@ -10,9 +10,10 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+import type { FC } from 'react'
 
 import { TinaSchema } from '../schema'
-import type { FC } from 'react'
+import type { TinaCloudSchemaConfig } from './config'
 
 export type UIField<F extends UIField = any, Shape = any> = {
   // name?: string
@@ -30,12 +31,12 @@ export type UIField<F extends UIField = any, Shape = any> = {
     field: UIField<F, Shape>
   ): string | object | undefined | void
   defaultValue?: Shape
-  // fields?: F[]
 }
 
-export interface TinaCloudSchema<WithNamespace extends boolean> {
+export interface TinaCloudSchema<WithNamespace extends boolean, Store = any> {
   templates?: GlobalTemplate<WithNamespace>[]
   collections: TinaCloudCollection<WithNamespace>[]
+  config?: TinaCloudSchemaConfig<Store>
 }
 export type TinaCloudSchemaBase = TinaCloudSchema<false>
 export type TinaCloudSchemaEnriched = TinaCloudSchema<true>
@@ -48,6 +49,7 @@ export type TinaCloudSchemaEnriched = TinaCloudSchema<true>
 export interface TinaCloudSchemaWithNamespace {
   templates?: GlobalTemplate<true>[]
   collections: TinaCloudCollection<true>[]
+  config?: TinaCloudSchemaConfig
   namespace: string[]
 }
 
@@ -60,11 +62,44 @@ export type TinaCloudCollectionEnriched = TinaCloudCollection<true>
 
 type FormatType = 'json' | 'md' | 'markdown' | 'mdx'
 
+type Document = {
+  _sys: {
+    title?: string
+    template: string
+    breadcrumbs: string[]
+    path: string
+    basename: string
+    relativePath: string
+    filename: string
+    extension: string
+  }
+}
+
 interface BaseCollection {
   label?: string
   name: string
   path: string
   format?: FormatType
+  ui?: {
+    /**
+     * Forms for this collection will be editable from the global sidebar rather than the form panel
+     */
+    global?: boolean | { icon?: any; layout: 'fullscreen' | 'popup' }
+    /**
+     * Provide the path that your document is viewable on your site
+     *
+     * eg:
+     * ```ts
+     * router: ({ document }) => {
+     *   return `blog-posts/${document._sys.filename}`;
+     * }
+     * ```
+     */
+    router?: (args: {
+      document: Document
+      collection: TinaCloudCollection<true>
+    }) => string | undefined
+  }
   match?: string
 }
 
@@ -165,12 +200,14 @@ type StringField =
       type: 'string'
       isBody?: boolean
       list?: false
+      isTitle?: boolean
       ui?: UIField<any, string>
     }
   | {
       type: 'string'
       isBody?: boolean
       list: true
+      isTitle?: never
       ui?: UIField<any, string[]>
     }
 
@@ -397,6 +434,10 @@ export type Template<WithNamespace extends boolean> = WithNamespace extends true
       label: string
       name: string
       fields: TinaFieldInner<WithNamespace>[]
+      match?: {
+        start: string
+        end: string
+      }
       ui?: object | (UIField<any, any> & { previewSrc: string })
       namespace: WithNamespace extends true ? string[] : undefined
     }
@@ -405,6 +446,10 @@ export type Template<WithNamespace extends boolean> = WithNamespace extends true
       name: string
       ui?: object | (UIField<any, any> & { previewSrc: string })
       fields: TinaFieldInner<WithNamespace>[]
+      match?: {
+        start: string
+        end: string
+      }
     }
 
 // Builder types
@@ -444,3 +489,5 @@ export type ResolveFormArgs = {
   template: Templateable
   schema: TinaSchema
 }
+
+export * from './config'

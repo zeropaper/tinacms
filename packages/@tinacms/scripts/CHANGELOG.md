@@ -1,5 +1,76 @@
 # Change Log
 
+## 0.51.1
+
+### Patch Changes
+
+- 9fbb4e557: Fix issue building node packages to non-index.js files
+
+## 0.51.0
+
+### Minor Changes
+
+- 7b0dda55e: Updates to the `rich-text` component as well the shape of the `rich-text` field response from the API
+
+  - Adds support for isTitle on MDX elements
+  - Fixes issues related to nested marks
+  - Uses monaco editor for code blocks
+  - Improves styling of nested list items
+  - Improves handling of rich-text during reset
+  - No longer errors on unrecognized JSX/html, instead falls back to print `No component provided for <compnonent name>`
+  - No longer errors on markdown parsing errors, instead falls back to rendering markdown as a string, customizable via the TinaMarkdown component (invalid_markdown prop)
+  - Prepares rich-text component for raw mode - where you can edit the raw markdown directly in the Tina form. This will be available in future release.
+
+### Patch Changes
+
+- 8183b638c: ## Adds a new "Static" build option.
+
+  This new option will build tina into a static `index.html` file. This will allow someone to use tina without having react as a dependency.
+
+  ### How to update
+
+  1.  Add a `.tina/config.{js,ts,tsx,jsx}` with the default export of define config.
+
+  ```ts
+  // .tina/config.ts
+  import schema from './schema'
+
+  export default defineConfig({
+    schema: schema,
+    //.. Everything from define config in `schema.ts`
+    //.. Everything from `schema.config`
+  })
+  ```
+
+  2. Add Build config
+
+  ```
+  .tina/config.ts
+
+  export default defineConfig({
+     build: {
+       outputFolder: "admin",
+       publicFolder: "public",
+    },
+    //... other config
+  })
+  ```
+
+  3. Go to `http://localhost:3000/admin/index.html` and view the admin
+
+## 0.50.9
+
+### Patch Changes
+
+- 2ef5a1f33: fix scale isssue, truncate form label to filename
+
+## 0.50.8
+
+### Patch Changes
+
+- 1f7d3ca3d: Use custom wrapper class for tailwind type plugin
+- 6c17f0160: fix scale isssue, truncate form label to filename
+
 ## 0.50.7
 
 ### Patch Changes

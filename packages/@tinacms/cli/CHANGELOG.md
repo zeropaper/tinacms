@@ -1,5 +1,445 @@
 # tinacms-cli
 
+## 0.61.12
+
+### Patch Changes
+
+- Updated dependencies [87369d34c]
+  - @tinacms/graphql@0.63.8
+
+## 0.61.11
+
+### Patch Changes
+
+- Updated dependencies [777b1e08a]
+  - @tinacms/schema-tools@0.1.2
+  - @tinacms/graphql@0.63.7
+  - @tinacms/app@0.0.11
+
+## 0.61.10
+
+### Patch Changes
+
+- 75b9a1b56: enhancement: Don't build client on tinacms audit
+- 10cce31b7: fix: surface errors from type-gen
+- 9e5da3103: Add router to default schema
+- 098102a89: fix: exit with error with tina schema build fails
+- Updated dependencies [75b9a1b56]
+- Updated dependencies [59ff1bb10]
+- Updated dependencies [232ae6d52]
+- Updated dependencies [fd4d8c8ff]
+- Updated dependencies [9e5da3103]
+  - @tinacms/graphql@0.63.6
+  - @tinacms/schema-tools@0.1.1
+  - @tinacms/app@0.0.10
+
+## 0.61.9
+
+### Patch Changes
+
+- 2b60a7bd8: Improve audit so that it doesn't throw errors during the file list process. Also adds support for `--verbose` argument during `audit`.
+- Updated dependencies [2b60a7bd8]
+  - @tinacms/graphql@0.63.5
+  - @tinacms/app@0.0.9
+
+## 0.61.8
+
+### Patch Changes
+
+- b1f141e66: Fixes an issue where JSX inside the tina schema would break compilation for users using a later version of esbuild.
+  - @tinacms/app@0.0.8
+
+## 0.61.7
+
+### Patch Changes
+
+- Updated dependencies [1fc0e339e]
+  - @tinacms/datalayer@0.2.3
+  - @tinacms/graphql@0.63.4
+
+## 0.61.6
+
+### Patch Changes
+
+- Updated dependencies [b369d7238]
+  - @tinacms/graphql@0.63.3
+  - @tinacms/app@0.0.7
+
+## 0.61.5
+
+### Patch Changes
+
+- @tinacms/graphql@0.63.2
+
+## 0.61.4
+
+### Patch Changes
+
+- @tinacms/app@0.0.6
+- @tinacms/datalayer@0.2.2
+- @tinacms/graphql@0.63.1
+- @tinacms/metrics@0.0.3
+- @tinacms/schema-tools@0.1.0
+
+## 0.61.3
+
+### Patch Changes
+
+- Updated dependencies [067c49efd]
+- Updated dependencies [9ba09bd0c]
+  - @tinacms/graphql@0.63.1
+  - @tinacms/app@0.0.5
+
+## 0.61.2
+
+### Patch Changes
+
+- 8183b638c: ## Adds a new "Static" build option.
+
+  This new option will build tina into a static `index.html` file. This will allow someone to use tina without having react as a dependency.
+
+  ### How to update
+
+  1.  Add a `.tina/config.{js,ts,tsx,jsx}` with the default export of define config.
+
+  ```ts
+  // .tina/config.ts
+  import schema from './schema'
+
+  export default defineConfig({
+    schema: schema,
+    //.. Everything from define config in `schema.ts`
+    //.. Everything from `schema.config`
+  })
+  ```
+
+  2. Add Build config
+
+  ```
+  .tina/config.ts
+
+  export default defineConfig({
+     build: {
+       outputFolder: "admin",
+       publicFolder: "public",
+    },
+    //... other config
+  })
+  ```
+
+  3. Go to `http://localhost:3000/admin/index.html` and view the admin
+
+- Updated dependencies [7b0dda55e]
+- Updated dependencies [8183b638c]
+  - @tinacms/graphql@0.63.0
+  - @tinacms/schema-tools@0.1.0
+  - @tinacms/app@0.0.4
+  - @tinacms/datalayer@0.2.2
+  - @tinacms/metrics@0.0.3
+
+## 0.61.1
+
+### Patch Changes
+
+- 531347748: Update to use mkdirp to fix issue on windows
+- Updated dependencies [028e10686]
+- Updated dependencies [e27f5cce7]
+  - @tinacms/graphql@0.62.1
+
+## 0.61.0
+
+### Minor Changes
+
+- 870a32f18: This PR adds the new generated client, a new build command and introduces a new path of working with tina.
+
+  # How to upgrade
+
+  ## Updates to schema.ts
+
+  Instead of passing an ApiURL, now the clientId, branch and read only token (NEW) will all be configured in the schema. The local url will be used if the --local flag is passed.
+
+  This will require a change to the schema and the scripts.
+
+  ```diff
+  // .tina/schema.ts
+
+  + import { client } from "./__generated__/client";
+
+  // ...
+
+  const schema = defineSchema({
+  +    config: {
+  +        branch: "main",
+  +        clientId: "***",
+  +        token: "***",
+      },
+      collections: [
+          // ...
+      ]
+  })
+
+  // ...
+  - const branch = process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_REF
+  - const clientId = 'YOUR-CLIENT-ID-HERE'
+  - const apiURL =
+  -   process.env.NODE_ENV == 'development'
+  -     ? 'http://localhost:4001/graphql'
+  -    : `https://content.tinajs.io/content/${clientId}/github/${branch}`
+  export const tinaConfig = defineConfig({
+  +  client,
+  -  apiURl,
+    schema,
+    // ...
+  })
+
+  export default schema
+  ```
+
+  The token must be a wildcard token (`*`) and can be generated from the tina dashboard. [Read more hear](https://tina.io/docs/graphql/read-only-tokens/)
+
+  ## Updates to scripts in package.json
+
+  We now recommend separating the graphQL server into two separate processes (two separate terminals in development). The scripts should look like this:
+
+  ```json
+  {
+    "scripts": {
+      "dev": "tinacms build --local && next dev",
+      "dev-server": "tinacms server:start",
+      "build": "tinacms build && next build"
+      // ... Other Scripts
+    }
+  }
+  ```
+
+  When developing, in the first terminal run `yarn dev-server` and then `yarn dev` in the second.
+
+  The old `-c` subcommand can still be used. This will start the dev server and next dev process in the same terminal.
+
+  ```json
+  {
+    "scripts": {
+      "dev": "tinacms server:start \"tinacms build --local && next dev\"",
+      "dev-server": "tinacms server:start",
+      "build": "tinacms build && next build"
+      // ... Other Scripts
+    }
+  }
+  ```
+
+  ## Updates to generated files
+
+  We now recommend ignoring most of the generated files. This is because `client.ts` and `types.ts` will be generated in CI with `tinacms build`
+
+  To remove them from your repository, run `git rm --cached .tina/__generated__/*` and then `yarn tinacms build` to update the generated files that need to stay.
+
+### Patch Changes
+
+- 98f82cef7: Updates the init command to use the new client
+- ae06f4a96: Fixed audit cmd to use datalayer
+- 4360ef284: Minor bug fixes with tina init command in the CLI
+- 3ac1fb8e4: Generate types and client based on the file type of the schema
+- cf7df9859: Throw an error message when the client is not setup properly in production
+- f68b045b9: Example page accounts for apps that use the src dir
+- 637793dc0: Always reset the generated folder
+- 8dab8d4ce: fix bug where tina init would error because there is no generated folder
+- Updated dependencies [870a32f18]
+- Updated dependencies [dcbc57c86]
+- Updated dependencies [ae06f4a96]
+- Updated dependencies [660247b6b]
+- Updated dependencies [a7dcb8d44]
+  - @tinacms/graphql@0.62.0
+  - @tinacms/schema-tools@0.0.9
+  - @tinacms/datalayer@0.2.2
+
+## 0.60.28
+
+### Patch Changes
+
+- Updated dependencies [0b5a8e6e7]
+  - @tinacms/graphql@0.61.3
+
+## 0.60.27
+
+### Patch Changes
+
+- 8e893a027: Fixed issue where having a src and pages dir would cause an issue
+- Updated dependencies [cf0f531a1]
+- Updated dependencies [b0dfc6205]
+  - @tinacms/datalayer@0.2.1
+  - @tinacms/schema-tools@0.0.8
+  - @tinacms/graphql@0.61.2
+
+## 0.60.26
+
+### Patch Changes
+
+- b5b0dfd66: chore: migrate from fs.rmdir -> fs.rm
+- 7d87eb6b7: Add `loadCustomStore` to top schema config
+- 7038745f6: Fixed issue where server would start before the generated file was made.
+- Updated dependencies [b5b0dfd66]
+- Updated dependencies [7d87eb6b7]
+- Updated dependencies [67e291e56]
+- Updated dependencies [ae23e9ad6]
+  - @tinacms/graphql@0.61.1
+  - @tinacms/schema-tools@0.0.7
+
+## 0.60.25
+
+### Patch Changes
+
+- 0bc18072e: Fixed issue where too many saves at one time would cause server to crash
+
+## 0.60.24
+
+### Patch Changes
+
+- 2ef5a1f33: Use media config from the schema in the local media server
+- 2ef5a1f33: Uses new `schema.config` when resolving media/asset urls
+- b348f8b6b: Experimental isomorphic git bridge implementation
+- b46e9a481: Fixed issue where child process would start before parent
+- fb73fb355: Renames syncFolder to a mediaRoot when configuring Repo-Based Media
+- 7b77fe1b5: Add a default TinaMediaStore for repo-based media
+- 3e4b3ea7e: media manage uses relieve dir paths
+- 99a13024d: Enables paging for local media manager
+- Updated dependencies [2ef5a1f33]
+- Updated dependencies [2ef5a1f33]
+- Updated dependencies [b348f8b6b]
+- Updated dependencies [fb73fb355]
+- Updated dependencies [4daf15b36]
+  - @tinacms/graphql@0.61.0
+  - @tinacms/datalayer@0.2.0
+  - @tinacms/schema-tools@0.0.6
+  - @tinacms/metrics@0.0.3
+
+## 0.60.23
+
+### Patch Changes
+
+- Updated dependencies [3325cd226]
+  - @tinacms/graphql@0.60.8
+
+## 0.60.22
+
+### Patch Changes
+
+- b1a4290e6: Use media config from the schema in the local media server
+- 1955b8842: Uses new `schema.config` when resolving media/asset urls
+- Updated dependencies [f6cb634c2]
+- Updated dependencies [b1a4290e6]
+- Updated dependencies [1955b8842]
+- Updated dependencies [8b81c3cf3]
+  - @tinacms/graphql@0.60.7
+  - @tinacms/schema-tools@0.0.5
+  - @tinacms/datalayer@0.1.1
+  - @tinacms/metrics@0.0.3
+
+## 0.60.21
+
+### Patch Changes
+
+- Updated dependencies [e2aafcd93]
+- Updated dependencies [a20fed8b7]
+  - @tinacms/graphql@0.60.6
+
+## 0.60.20
+
+### Patch Changes
+
+- f71f55ac3: Fixd issue where --dev caused a breaking change
+- Updated dependencies [57f09bdd7]
+  - @tinacms/graphql@0.60.5
+
+## 0.60.19
+
+### Patch Changes
+
+- d103b27ad: Fix issue where new collections would not be added when CLI restarts
+- e06dbb3ca: Adds `waitForDB` cmd to cli
+- Updated dependencies [d103b27ad]
+  - @tinacms/graphql@0.60.4
+
+## 0.60.18
+
+### Patch Changes
+
+- 79d112d79: Update cli to accept tinaCloudMediaStore flag and add to metadata during schema compilation
+- 91d6e6758: revert platform aware paths in schema introduced in https://github.com/tinacms/tinacms/commit/558cc4368cd2a4b6e87dfb82bbfbb6f569f8a6f8
+- b1240328d: Adds local server routes for handling media
+- 91d6e6758: Fix issues with experimentalData on windows related to path separator inconsistency and interference with the .tina/**generated** folder
+- Updated dependencies [79d112d79]
+- Updated dependencies [3f46c6706]
+- Updated dependencies [db9168578]
+- Updated dependencies [91d6e6758]
+  - @tinacms/graphql@0.60.3
+
+## 0.60.17
+
+### Patch Changes
+
+- 08cdb672a: Adds `useRelativeMedia` support to local graphql client
+- 646cad8da: Adds support for using the generated client on the frontend
+- f857616f6: Rename sdk to queries
+- Updated dependencies [08cdb672a]
+- Updated dependencies [fdbfe9a16]
+- Updated dependencies [6e2ed31a2]
+  - @tinacms/graphql@0.60.2
+  - @tinacms/schema-tools@0.0.4
+
+## 0.60.16
+
+### Patch Changes
+
+- 7372f90ca: Adds a new client that can be used on the backend and frontend.
+- Updated dependencies [3b11ff6ad]
+  - @tinacms/graphql@0.60.1
+
+## 0.60.15
+
+### Patch Changes
+
+- ceb826916: Fix issue where \_app override from tina init was improperly formatted
+
+## 0.60.14
+
+### Patch Changes
+
+- Updated dependencies [6a6f137ae]
+  - @tinacms/graphql@0.60.0
+
+## 0.60.13
+
+### Patch Changes
+
+- 9d28ea29e: hide some existing start:server logging behind --verbose flag. format some messages to make them easier to read
+
+## 0.60.12
+
+### Patch Changes
+
+- ef450a53a: - Update tinacms CLI to support schemaFileType option (default 'ts') to allow user to specify the schema file type
+  - Update telemetry module to optionally check NO_TELEMETRY environment variable for disabling telemetry
+- 81b729c24: Update formatting of cli init outputs
+- 558cc4368: Make schema init platform-aware and refactor database put requests
+- Updated dependencies [4da32454b]
+- Updated dependencies [921709a7e]
+- Updated dependencies [ef450a53a]
+- Updated dependencies [a2906d6fe]
+- Updated dependencies [558cc4368]
+- Updated dependencies [06666d39f]
+- Updated dependencies [3e2d9e43a]
+  - @tinacms/graphql@0.59.11
+  - @tinacms/schema-tools@0.0.3
+  - @tinacms/metrics@0.0.3
+  - @tinacms/datalayer@0.1.1
+
+## 0.60.11
+
+### Patch Changes
+
+- Updated dependencies [cf33bcec1]
+  - @tinacms/graphql@0.59.10
+
 ## 0.60.10
 
 ### Patch Changes

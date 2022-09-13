@@ -1,19 +1,14 @@
 /**
-
 Copyright 2021 Forestry.io Holdings, Inc.
-
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
-
     http://www.apache.org/licenses/LICENSE-2.0
-
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
-
 */
 
 import * as React from 'react'
@@ -61,6 +56,7 @@ const ImgPlaceholder = styled.div`
 const StyledImage = styled.img`
   max-width: 100%;
   min-height: 100px;
+  max-height: 400px;
   border-radius: var(--tina-radius-small);
   transition: opacity var(--tina-timing-short) ease-out;
   margin: 0;
@@ -91,6 +87,7 @@ const DeleteButton = styled(IconButton)`
 `
 
 const StyledImageContainer = styled.div`
+  width: fit-content;
   position: relative;
   overflow: hidden;
   &:hover {
@@ -138,7 +135,7 @@ export const ImageUpload = ({
           )}
         </StyledImageContainer>
       ) : (
-        <StyledImageContainer>
+        <StyledImageContainer className="w-full">
           {loading ? (
             <ImageLoadingIndicator />
           ) : (

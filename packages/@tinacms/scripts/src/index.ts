@@ -13,9 +13,10 @@ limitations under the License.
 
 import { build } from 'vite'
 import { build as esbuild } from 'esbuild'
-import { pnpPlugin } from '@yarnpkg/esbuild-plugin-pnp'
-import fs from 'fs'
+import fs from 'fs-extra'
 import path from 'path'
+import chokidar from 'chokidar'
+import { exec } from 'child_process'
 import chalk from 'chalk'
 import tailwind from 'tailwindcss'
 import postcssNested from 'postcss-nested'
@@ -123,6 +124,35 @@ export const run = async (args: { watch?: boolean; dir?: string }) => {
   }
 }
 
+const watch = () => {
+  exec('pnpm list -r --json', (error, stdout, stderr) => {
+    if (error) {
+      console.error(`exec error: ${error}`)
+      return
+    }
+    const json = JSON.parse(stdout) as { name: string; path: string }[]
+    const watchPaths: string[] = []
+    json.forEach((pkg) => {
+      if (pkg.path.includes('/packages/')) {
+        watchPaths.push(pkg.path)
+      }
+    })
+
+    chokidar
+      .watch(
+        watchPaths.map((p) => path.join(p, 'src', '**/*')),
+        {
+          ignored: ['**/spec/**/*', 'node_modules'],
+        }
+      )
+      .on('change', async (path) => {
+        const changedPackagePath = watchPaths.find((p) => path.startsWith(p))
+        await run({ dir: changedPackagePath })
+        // console.log('change', changedPackagePath)
+      })
+  })
+}
+
 export async function init(args: any) {
   registerCommands([
     {
@@ -137,19 +167,9 @@ export async function init(args: any) {
       action: (options) => run(options),
     },
     {
-      command: 'build:all',
-      description: 'Build all packages',
-      options: [
-        {
-          name: '--watch',
-          description: 'Watch for file changes and rebuild',
-        },
-        {
-          name: '--lines',
-          description: 'add the lines',
-        },
-      ],
-      action: (options) => all(options),
+      command: 'watch',
+      description: 'Watch',
+      action: () => watch(),
     },
   ])
 
@@ -234,7 +254,7 @@ const config = (cwd = '') => {
         18: '72px',
         20: '80px',
         24: '96px',
-        28: '11px',
+        28: '114px',
         32: '128px',
         36: '144px',
         40: '160px',
@@ -322,6 +342,9 @@ const config = (cwd = '') => {
         auto: 'auto',
       },
       extend: {
+        animation: {
+          'spin-reverse': 'spin 1s linear infinite reverse',
+        },
         scale: {
           97: '.97',
           103: '1.03',
@@ -389,7 +412,9 @@ const config = (cwd = '') => {
     },
     content: [path.join(cwd, 'src/**/*.{vue,js,ts,jsx,tsx,svelte}')],
     plugins: [
-      require('@tailwindcss/typography'),
+      require('@tailwindcss/typography')({
+        className: 'tina-prose',
+      }),
       require('@tailwindcss/line-clamp'),
       require('@tailwindcss/aspect-ratio'),
     ],
@@ -399,7 +424,7 @@ const config = (cwd = '') => {
   }
 }
 
-const buildIt = async (entryPoint, packageJSON) => {
+export const buildIt = async (entryPoint, packageJSON) => {
   const entry = typeof entryPoint === 'string' ? entryPoint : entryPoint.name
   const target = typeof entryPoint === 'string' ? 'browser' : entryPoint.target
   const deps = packageJSON.dependencies
@@ -408,11 +433,27 @@ const buildIt = async (entryPoint, packageJSON) => {
   const external = Object.keys({ ...deps, ...peerDeps })
   const globals = {}
 
+  const out = (entry: string) => {
+    const { dir, name } = path.parse(entry)
+    const outdir = dir.replace('src', 'dist')
+    const outfile = name
+    const relativeOutfile = path.join(
+      outdir
+        .split('/')
+        .map(() => '..')
+        .join('/'),
+      dir,
+      name
+    )
+    return { outdir, outfile, relativeOutfile }
+  }
+
+  const outInfo = out(entry)
+
   external.forEach((ext) => (globals[ext] = 'NOOP'))
   if (target === 'node') {
     if (['@tinacms/graphql', '@tinacms/datalayer'].includes(packageJSON.name)) {
       await esbuild({
-        plugins: [pnpPlugin()],
         entryPoints: [path.join(process.cwd(), entry)],
         bundle: true,
         platform: 'node',
@@ -420,19 +461,33 @@ const buildIt = async (entryPoint, packageJSON) => {
         // the syntax for optional chaining, should be supported on 14
         // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Optional_chaining
         target: 'node12',
-        outdir: path.join(process.cwd(), 'dist'),
+        outfile: path.join(process.cwd(), 'dist', 'index.js'),
         external: external.filter(
           (item) =>
             !packageJSON.buildConfig.entryPoints[0].bundle.includes(item)
         ),
       })
-    } else {
+    } else if (['@tinacms/mdx'].includes(packageJSON.name)) {
+      const peerDeps = packageJSON.peerDependencies
+      const external = Object.keys({ ...peerDeps })
       await esbuild({
-        plugins: [pnpPlugin()],
         entryPoints: [path.join(process.cwd(), entry)],
         bundle: true,
         platform: 'node',
-        outdir: path.join(process.cwd(), 'dist'),
+        // FIXME: no idea why but even though I'm on node14 it doesn't like
+        // the syntax for optional chaining, should be supported on 14
+        // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Optional_chaining
+        target: 'node12',
+        format: 'cjs',
+        outfile: path.join(process.cwd(), 'dist', 'index.js'),
+        external,
+      })
+    } else {
+      await esbuild({
+        entryPoints: [path.join(process.cwd(), entry)],
+        bundle: true,
+        platform: 'node',
+        outfile: path.join(process.cwd(), 'dist', `${outInfo.outfile}.js`),
         external,
         target: 'node12',
       })
@@ -454,7 +509,6 @@ const buildIt = async (entryPoint, packageJSON) => {
   }
 
   const defaultBuildConfig: Parameters<typeof build>[0] = {
-    // plugins: [pnpPlugin(), dts()],
     plugins: [
       {
         name: 'vite-plugin-tina',
@@ -483,15 +537,12 @@ const buildIt = async (entryPoint, packageJSON) => {
         entry: path.resolve(process.cwd(), entry),
         name: packageJSON.name,
         fileName: (format) => {
-          const base = path.basename(entry)
-          const ext = path.extname(entry)
-          const name = base.replace(ext, '')
-          if (format === 'umd') {
-            return `${name}.js`
-          }
-          return `${name}.${format}.js`
+          return format === 'umd'
+            ? `${outInfo.outfile}.js`
+            : `${outInfo.outfile}.es.js`
         },
       },
+      outDir: outInfo.outdir,
       emptyOutDir: false, // we build multiple files in to the dir
       sourcemap: false, // true | 'inline' (note: inline will go straight into your bundle size)
       rollupOptions: {
@@ -530,70 +581,11 @@ const buildIt = async (entryPoint, packageJSON) => {
   await build({
     ...buildConfig,
   })
-  const extension = path.extname(entry)
-  await fs.writeFileSync(
-    path.join(
-      process.cwd(),
-      'dist',
-      entry.replace('src/', '').replace(extension, '.d.ts')
-    ),
-    `export * from "../${entry.replace(extension, '')}"`
+  await fs.outputFileSync(
+    path.join(outInfo.outdir, `${outInfo.outfile}.d.ts`),
+    `export * from "${outInfo.relativeOutfile}"`
   )
   return true
-}
-
-import pnp from 'pnpapi'
-import chokidar from 'chokidar'
-
-const all = async (args: { watch?: boolean; dir?: string }) => {
-  const workspacePackageNames = []
-  await sequential(pnp.getDependencyTreeRoots(), async (locator) => {
-    const pkg = pnp.getPackageInformation(locator)
-    const packageJSON = JSON.parse(
-      await fs
-        .readFileSync(path.join(pkg.packageLocation, 'package.json'))
-        .toString()
-    )
-    workspacePackageNames.push(packageJSON.name)
-  })
-  const workspacePkgs = []
-  await sequential(pnp.getDependencyTreeRoots(), async (locator) => {
-    const pkg = pnp.getPackageInformation(locator)
-    const packageJSON = JSON.parse(
-      await fs
-        .readFileSync(path.join(pkg.packageLocation, 'package.json'))
-        .toString()
-    )
-    if (!packageJSON.private) {
-      workspacePkgs.push(path.join(pkg.packageLocation, 'src'))
-    }
-  })
-  if (args.watch) {
-    console.log(`${chalk.blue(`Watching workspaces...`)}`)
-    chokidar
-      .watch(workspacePkgs, {
-        ignored: '**/spec/**/*', // ignore dotfiles
-      })
-      .on('change', async (path) => {
-        const packageLocator = pnp.findPackageLocator(path)
-        const packageInformation = pnp.getPackageInformation(packageLocator)
-        await run({ dir: packageInformation.packageLocation })
-      })
-  } else {
-    console.log(`${chalk.blue(`Building workspaces...`)}`)
-    const packagePathsToBuild = await fs
-      .readFileSync(path.resolve('../../../topologicalDeps.txt'))
-      .toString()
-      .split('\n')
-      .filter((stdout) => {
-        return stdout.includes('packages')
-      })
-      .map((line) => line.split(' ').pop())
-
-    await sequential(packagePathsToBuild, async (packagePath) => {
-      await run({ dir: packagePath })
-    })
-  }
 }
 
 export const sequential = async <A, B>(

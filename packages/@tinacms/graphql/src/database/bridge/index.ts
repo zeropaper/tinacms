@@ -13,9 +13,10 @@ limitations under the License.
 
 export interface Bridge {
   rootPath: string
-  glob(pattern: string): Promise<string[]>
+  glob(pattern: string, extension: string): Promise<string[]>
   get(filepath: string): Promise<string>
   put(filepath: string, data: string): Promise<void>
+  delete(filepath: string): Promise<void>
   /**
    * Whether this bridge supports the ability to build the schema.
    */

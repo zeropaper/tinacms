@@ -28,7 +28,7 @@ See our [ROADMAP.md](https://github.com/tinacms/tinacms/blob/main/ROADMAP.md) to
 [![Tweet](https://img.shields.io/twitter/url/http/shields.io.svg?style=social)](https://twitter.com/intent/tweet?url=https%3A%2F%2Ftinacms.org&text=I%20just%20checked%20out%20@tina_cms%20on%20GitHub%20and%20it%20is%20sweet%21&hashtags=TinaCMS%2Cjamstack%2Cheadlesscms)
 [![Forum](https://shields.io/github/discussions/tinacms/tinacms)](https://github.com/tinacms/tinacms/discussions)
 
-Visit the [Github forum](https://github.com/tinacms/tinacms/discussions) to ask questions or look us up on on Twitter at [@tina_cms](https://twitter.com/tina_cms).
+Visit the [Github forum](https://github.com/tinacms/tinacms/discussions) or our [Community Discord](https://discord.com/invite/zumN63Ybpf) to ask questions, or look us up on on Twitter at [@tina_cms](https://twitter.com/tina_cms).
 
 <!-- ## Changelog
 
@@ -41,10 +41,11 @@ Please see our [./CONTRIBUTING.md](https://github.com/tinacms/tinacms/blob/main/
 ### Maintainers
 
 - Scott Byrne ([@scottpbyrne](https://twitter.com/scottpbyrne)) – Forestry.io
-- Chris Davis ([@Enigmatical](https://github.com/Enigmatical) – Forestry.io
-- DJ Walker([@wordsaboutcode](https://twitter.com/wordsaboutcode)) – Forestry.io
 - Jeff See ([@jeffsee55](https://github.com/jeffsee55)) - Forestry.io
 - Logan Anderson ([@logan_anders0n](https://twitter.com/logan_anders0n)) - Forestry.io
+- Kelly Davis ([@kldavis](https://github.com/kldavis4)) - Forestry.io
+- James O'Halloran ([@jamespohalloran](https://github.com/jamespohalloran)) - Forestry.io
+
 
 ### All Contributors ✨
 

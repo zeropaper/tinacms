@@ -11,27 +11,39 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { Command } from '../command'
-import { chain } from '../middleware'
-import { genTypes, attachSchema } from './query-gen'
-import { startServer } from './start-server'
-import { compile } from './compile'
+import { audit, printFinalMessage } from './audit'
 import {
+  checkDeps,
   initTina,
   installDeps,
-  checkDeps,
-  tinaSetup,
   successMessage,
+  tinaSetup,
 } from './init'
-import { audit, printFinalMessage } from './audit'
-import { logger } from '../logger'
-import chalk from 'chalk'
 
-export const CMD_GEN_TYPES = 'schema:types'
+import 'dotenv/config'
+import { Command } from '../command'
+import { chain } from '../middleware'
+import chalk from 'chalk'
+import { compileClient } from './compile'
+import { logger } from '../logger'
+import { startServer } from './start-server'
+import { waitForDB } from './waitForDB'
+import { startSubprocess } from './startSubprocess'
+import {
+  buildCmdBuild,
+  buildSetupCmdServerStart,
+  buildSetupCmdBuild,
+  auditCmdBuild,
+  buildSetupCmdAudit,
+} from '../buildTina'
+import { attachPath } from '../buildTina/attachPath'
+import { warnText } from '../utils/theme'
+
 export const CMD_START_SERVER = 'server:start'
-export const CMD_COMPILE_MODELS = 'schema:compile'
+export const CMD_DEV = 'dev'
 export const INIT = 'init'
 export const AUDIT = 'audit'
+export const CMD_BUILD = 'build'
 
 const startServerPortOption = {
   name: '--port <port>',
@@ -40,6 +52,14 @@ const startServerPortOption = {
 const experimentalDatalayer = {
   name: '--experimentalData',
   description: 'Build the server with additional data querying capabilities',
+}
+const isomorphicGitBridge = {
+  name: '--isomorphicGitBridge',
+  description: 'Enable Isomorphic Git Bridge Implementation',
+}
+const schemaFileType = {
+  name: '--schemaFileType [fileType]',
+  description: 'The file type to use for the Tina schema',
 }
 const subCommand = {
   name: '-c, --command <command>',
@@ -73,6 +93,31 @@ const watchFileOption = {
   description:
     'a list of folders (relative to where this is being run) that the cli will watch for changes',
 }
+const verboseOption = {
+  name: '-v, --verbose',
+  description: 'increase verbosity of logged output',
+  defaultValue: false,
+}
+const developmentOption = {
+  name: '--dev',
+  description: 'Uses NODE_ENV=development when compiling client and schema',
+}
+const localOption = {
+  name: '--local',
+  description: 'Uses the local file system graphql server',
+  defaultValue: false,
+}
+
+const checkOptions = async (_ctx: any, next: () => void, options: any) => {
+  if (options?.experimentalData) {
+    logger.warn(
+      warnText(
+        'Warning: you are using the `--experimentalData`flag. This flag is not needed and can safely be removed. It will be deprecated in a future version'
+      )
+    )
+  }
+  next()
+}
 
 export const baseCmds: Command[] = [
   {
@@ -82,42 +127,104 @@ export const baseCmds: Command[] = [
       startServerPortOption,
       subCommand,
       experimentalDatalayer,
+      isomorphicGitBridge,
       noWatchOption,
       noSDKCodegenOption,
       noTelemetryOption,
       watchFileOption,
+      verboseOption,
+      developmentOption,
+      localOption,
     ],
-    action: (options) => chain([startServer], options),
+    action: (options) =>
+      chain(
+        [
+          attachPath,
+          async (ctx, next, _) => {
+            logger.warn(
+              warnText(
+                'server:start will be deprecated in the future, please use `tinacms dev` instead'
+              )
+            )
+            next()
+          },
+          checkOptions,
+          buildSetupCmdServerStart,
+          startServer,
+          startSubprocess,
+        ],
+        options
+      ),
   },
   {
-    command: CMD_COMPILE_MODELS,
-    description: 'Compile schema into static files for the server',
-    options: [experimentalDatalayer, noTelemetryOption],
-    action: (options) => chain([compile], options),
+    command: CMD_DEV,
+    description: 'Builds tina and starts the dev server.',
+    options: [
+      startServerPortOption,
+      subCommand,
+      isomorphicGitBridge,
+      noWatchOption,
+      noSDKCodegenOption,
+      noTelemetryOption,
+      watchFileOption,
+      verboseOption,
+    ],
+    action: (options) =>
+      chain(
+        [
+          attachPath,
+          checkOptions,
+          buildSetupCmdServerStart,
+          startServer,
+          startSubprocess,
+        ],
+        options
+      ),
   },
   {
-    command: CMD_GEN_TYPES,
-    description:
-      "Generate a GraphQL query for your site's schema, (and optionally Typescript types)",
-    options: [experimentalDatalayer, noSDKCodegenOption, noTelemetryOption],
-    action: (options) => chain([attachSchema, genTypes], options),
+    command: CMD_BUILD,
+    description: 'Build Tina',
+    options: [
+      experimentalDatalayer,
+      isomorphicGitBridge,
+      noSDKCodegenOption,
+      noTelemetryOption,
+      verboseOption,
+      developmentOption,
+      localOption,
+    ],
+    action: (options) =>
+      chain(
+        [
+          attachPath,
+          checkOptions,
+          buildSetupCmdBuild,
+          buildCmdBuild,
+          compileClient,
+          waitForDB,
+        ],
+        options
+      ),
   },
   {
     command: INIT,
-    options: [experimentalDatalayer, noTelemetryOption],
+    options: [
+      experimentalDatalayer,
+      isomorphicGitBridge,
+      noTelemetryOption,
+      schemaFileType,
+    ],
     description: 'Add Tina Cloud to an existing project',
     action: (options) =>
       chain(
         [
+          attachPath,
+          checkOptions,
           checkDeps,
           initTina,
           installDeps,
-          async (_ctx, next) => {
-            await compile(_ctx, next)
-            next()
-          },
-          attachSchema,
-          genTypes,
+          buildSetupCmdBuild,
+          buildCmdBuild,
           tinaSetup,
           successMessage,
         ],
@@ -125,23 +232,20 @@ export const baseCmds: Command[] = [
       ),
   },
   {
-    options: [cleanOption, useDefaultValuesOption, noTelemetryOption],
+    options: [
+      cleanOption,
+      useDefaultValuesOption,
+      noTelemetryOption,
+      verboseOption,
+    ],
     command: AUDIT,
     description: 'Audit your schema and the files to check for errors',
     action: (options) =>
       chain(
         [
-          // Disable the output of the compile step
-          async (_ctx, next) => {
-            logger.level = 'error'
-            next()
-          },
-          async (_ctx, next) => {
-            await compile(_ctx, next)
-            next()
-          },
-          attachSchema,
-          genTypes,
+          attachPath,
+          buildSetupCmdAudit,
+          auditCmdBuild,
           async (_ctx, next) => {
             logger.level = 'info'
             logger.info(

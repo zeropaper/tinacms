@@ -16,7 +16,7 @@ import * as G from 'graphql'
 import * as util from './util'
 import { Form } from '@tinacms/toolkit'
 import type { TinaCMS } from '@tinacms/toolkit'
-import { formify, DATA_NODE_NAME } from './formify'
+import { formify } from './formify'
 import { onSubmitArgs } from '../use-graphql-forms'
 import { reducer } from './reducer'
 
@@ -112,6 +112,7 @@ export const useFormify = ({
    *       title
    *     }
    *     _internalSys {
+   *       relativePath
    *       path
    *     }
    *     form
@@ -283,10 +284,10 @@ export const useFormify = ({
                     query Node($id: String!) {
                       node(id: $id) {
                         ...on Document {
-                          form
-                          values
-                          _internalSys: sys {
+                          _values
+                          _internalSys: _sys {
                             path
+                            relativePath
                             collection {
                               name
                             }
@@ -440,14 +441,13 @@ export const useFormify = ({
                     ...changeSet,
                     value: {
                       ...res.node,
-                      // FIXME: assumes `data` field instead of alias
-                      data,
+                      ...data,
                     },
                   },
                 })
               })
               .catch((e) => {
-                cms.alerts.error(`Unexpected error fetching reference`)
+                cms.alerts.error(`Unexpected error fetching reference.`)
                 console.log(e)
               })
           }
@@ -456,7 +456,7 @@ export const useFormify = ({
         }
       }
     })
-  }, [state.changeSets.length])
+  }, [JSON.stringify(state.changeSets)])
 
   /**
    * NOTE: we're mimicking `componentWillUnmount` by keeping track of
@@ -613,10 +613,10 @@ export const useFormify = ({
                       query Node($id: String!) {
                         node(id: $id) {
                           ...on Document {
-                            form
-                            values
-                            _internalSys: sys {
+                            _values
+                            _internalSys: _sys {
                               path
+                              relativePath
                               collection {
                                 name
                               }
@@ -677,11 +677,11 @@ export const useFormify = ({
               )
               data[keyName] = {
                 ...res.node,
-                data: await resolveSubFields({
+                ...(await resolveSubFields({
                   formNode: subDocumentFormNode,
                   form,
                   loc: location,
-                }),
+                })),
               }
             })
 
