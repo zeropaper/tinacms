@@ -1,5 +1,11 @@
 # tinacms-cli
 
+## 0.61.14
+
+### Patch Changes
+
+- 47f99085d: Do not require a schema file when a config is provided.
+
 ## 0.61.13
 
 ### Patch Changes
